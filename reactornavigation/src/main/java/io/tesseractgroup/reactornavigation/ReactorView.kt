@@ -1,6 +1,8 @@
-package com.mcarthurlabs.prototypebluetoothlibrary.reactornavigation
+package io.tesseractgroup.reactornavigation
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -27,11 +29,13 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
 
     override fun onGlobalLayout() {
         if (!viewLayedOut){
-            viewSetup()
-            val hidden = visibility != View.VISIBLE
-            viewVisibilityChanged(hidden)
+            val mainHandler = Handler(Looper.getMainLooper())
+            mainHandler.post {
+                Log.i("NAVIGATION", "Layout callback")
+                viewSetup()
+                onWindowVisibilityChanged(visibility)
+            }
         }
-        Log.i("NAVIGATION", "Layout callback")
         viewLayedOut = true
 
         viewTreeObserver.removeOnGlobalLayoutListener(this)
@@ -56,8 +60,8 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
         }
         if (viewLayedOut){
             viewVisibilityChanged(hidden)
+            Log.i("NAVIGATION_${this.className()})", "Visibility changed: $visibilityStr")
         }
-        Log.i("NAVIGATION_${this.className()})", "Visibility changed: $visibilityStr")
     }
 
     override fun onAttachedToWindow() {

@@ -1,4 +1,4 @@
-package com.mcarthurlabs.prototypebluetoothlibrary.reactornavigation
+package io.tesseractgroup.reactornavigation
 
 import android.content.Context
 import android.os.Bundle
@@ -44,31 +44,36 @@ abstract class ReactorActivity(args: Bundle? = null, val reactorContainerId: Int
     /**
      * Responds to state changes by displaying the current visible view.
      */
-    fun updateWith(state: NavigationStateProtocol) {
+    open fun updateWithNavState(state: NavigationStateProtocol) {
 
-        val rootContainers = state.rootViewContainers
-        val selectedIndex = state.selectedIndex
-        val selectedContainer = rootContainers[selectedIndex]
+        val rootContainer = state.rootViewContainer
+        val overlay = state.overlay
+        val visibleContainer = rootContainer.findVisibleContainer()
+        val visibleViewState = rootContainer.findVisibleView()
 
         // Get visible View
-        val visibleView = selectedContainer.findVisibleViewState()
-        if (visibleView != null) {
-            showView(visibleView)
+        if (visibleViewState != null) {
+            showView(visibleViewState)
         }
-        val overlay = selectedContainer.findVisibleOverlayState()
         showOverlayView(overlay)
         // Show up button for children views
-        if (selectedContainer.viewStates.count() > 1) {
+        if (visibleContainer != null && visibleContainer.viewStates.count() > 1){
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        } else {
+        }else {
             supportActionBar?.setDisplayHomeAsUpEnabled(false)
         }
     }
 
+    abstract fun stateUpdated()
+
     /**
      * Transitions to the provided view state if it is not already displayed
      */
+    private var transitioningMainView = false
     private fun showView(reactorViewState: ReactorViewState) {
+        if (transitioningMainView){
+            return
+        }
         val view: View?
         val rootViewGroup = findViewById<ViewGroup>(reactorContainerId)
         if (rootViewGroup.childCount > 0) {
@@ -81,7 +86,7 @@ abstract class ReactorActivity(args: Bundle? = null, val reactorContainerId: Int
             // in the middle of a transition
             return
         }
-
+        transitioningMainView = true
         if (view is ViewStateConvertible && view.state() != reactorViewState) {
             Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.state()}")
             hideSoftKeyBoard()
@@ -92,21 +97,26 @@ abstract class ReactorActivity(args: Bundle? = null, val reactorContainerId: Int
             rootViewGroup.removeView(view)
             rootViewGroup.addView(reactorViewState.view(this))
         }
+        transitioningMainView = false
     }
 
     private fun hideSoftKeyBoard() {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-
-        if (imm.isAcceptingText()) { // verify if the soft keyboard is open
-            imm.hideSoftInputFromWindow(currentFocus!!.windowToken, 0)
+        val currentFocusElement = currentFocus
+        if (imm.isAcceptingText && currentFocusElement != null) { // verify if the soft keyboard is open
+            imm.hideSoftInputFromWindow(currentFocusElement.windowToken, 0)
         }
     }
 
     /**
      * Transitions to the provided view state if it is not already displayed
      */
+    private var transitioningOverlayView = false
     private fun showOverlayView(reactorViewState: ReactorViewState?) {
-        val view: View?
+        if (transitioningOverlayView){
+            return
+        }
+        transitioningOverlayView = true
         val rootViewGroup = findViewById<ViewGroup>(reactorModalId)
         if (reactorViewState == null && rootViewGroup.childCount > 0) {
             // Dismiss the current overlay
@@ -119,6 +129,7 @@ abstract class ReactorActivity(args: Bundle? = null, val reactorContainerId: Int
             rootViewGroup.addView(reactorViewState.view(this))
             rootViewGroup.visibility = View.VISIBLE
         }
+        transitioningOverlayView = false
     }
 
     /**
@@ -135,13 +146,14 @@ abstract class ReactorActivity(args: Bundle? = null, val reactorContainerId: Int
 
     override fun onBackPressed() {
         val state = reactorViewModel.navigationState()
-        val rootContainers = state.rootViewContainers
-        val selectedIndex = state.selectedIndex
-        val selectedContainer = rootContainers[selectedIndex]
-        if (selectedContainer.modal != null) {
-            reactorViewModel.fireEvent(NavigationEvent.DismissModalEvent(selectedContainer.containerTag))
-        } else if (selectedContainer.viewStates.count() > 1) {
-            reactorViewModel.fireEvent(NavigationEvent.PopViewEvent(selectedContainer.containerTag))
+        val selectedContainer = state.rootViewContainer.findVisibleContainer()
+        val parentContainerTag = selectedContainer?.parentContainerTag
+        if (state.overlay != null) {
+            reactorViewModel.fireEvent(NavigationEvent.DismissOverlay())
+        }else if (parentContainerTag != null) {
+            reactorViewModel.fireEvent(NavigationEvent.DismissModal(parentContainerTag))
+        } else if (selectedContainer!= null && selectedContainer.viewStates.count() > 1) {
+            reactorViewModel.fireEvent(NavigationEvent.PopNavView(selectedContainer.containerTag))
         } else {
             finish()
         }
@@ -181,9 +193,9 @@ class ReactorActivityViewModel<StateType : State>(val sharedCore: Core<StateType
     }
 
     override fun updateWith(state: StateType) {
-
         val navState = navStateSelector(state)
-        delegate?.get()?.updateWith(navState)
+        delegate?.get()?.updateWithNavState(navState)
+        delegate?.get()?.stateUpdated()
     }
 
     override fun fireEvent(event: Event) {

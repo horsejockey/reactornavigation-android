@@ -1,4 +1,4 @@
-package com.mcarthurlabs.prototypebluetoothlibrary.reactornavigation
+package io.tesseractgroup.reactornavigation
 
 import android.annotation.SuppressLint
 import android.content.Context
