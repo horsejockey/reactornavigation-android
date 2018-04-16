@@ -2,37 +2,78 @@ package io.tesseractgroup.reactornavigation
 
 import android.content.Context
 import android.view.View
+import io.tesseractgroup.reactor.Command
 import io.tesseractgroup.reactor.Event
-import io.tesseractgroup.reactor.State
 
 /**
  * PrototypeBluetoothLibrary
  * Created by matt on 11/29/17.
  */
 
-abstract class NavigationStateProtocol : State {
+abstract class NavigationStateProtocol {
 
     abstract var rootViewContainer: ViewContainerState
-    abstract var overlay: ReactorViewState?
+    var appInForeground: Boolean = true
 
-    fun findSubstateWithTag(tag: ViewContainerTag): ViewContainerState? {
+    private fun findSubstateWithTag(tag: ViewContainerTag): ViewContainerState? {
         return rootViewContainer.findSubstateWithTag(tag)
     }
-    fun findVisibleView() : ReactorViewState? {
+
+    fun findVisibleView(): ReactorViewState? {
         return rootViewContainer.findVisibleView()
     }
 
-    fun findVisibleContainer(): NavContainerState?{
+    fun findVisibleContainer(): NavContainerState? {
         return rootViewContainer.findVisibleContainer()
     }
+}
 
-    override fun reactTo(event: Event) {
-        rootViewContainer.reactTo(event)
-        if (event is NavigationEvent.ShowOverlay){
-            overlay = event.viewState
-        }else if(event is NavigationEvent.DismissOverlay){
-            overlay = null
+object Navigation {
+
+    val handler = fun(state: NavigationStateProtocol, event: NavigationEvent): Pair<NavigationStateProtocol, Command> {
+
+        val containerToUpdate = state.rootViewContainer.findSubstateWithTag(event.containerId)
+
+        when(event){
+            is NavigationEvent.ChangeContainerIndex -> {
+                if(containerToUpdate is TabContainerState) {
+                    containerToUpdate.selectedIndex = event.selectedIndex
+                }
+            }
+            is NavigationEvent.PresentModally ->{
+                containerToUpdate?.modal = event.viewContainer
+                containerToUpdate?.modal?.parentTag = event.containerId
+            }
+            is NavigationEvent.DismissModal -> {
+                containerToUpdate?.modal = null
+            }
+            is NavigationEvent.PushNavView -> {
+                if (containerToUpdate is NavContainerState){
+                    containerToUpdate.viewStates = containerToUpdate.viewStates.plus(event.view)
+                }
+            }
+            is NavigationEvent.PopNavView -> {
+                if (containerToUpdate is NavContainerState && containerToUpdate.viewStates.count() > 1){
+                    containerToUpdate.viewStates = containerToUpdate.viewStates.drop(1)
+                }
+            }
+            is NavigationEvent.UnwindToView -> {
+                if (containerToUpdate is NavContainerState){
+                    val unwindToView = event.view
+                    if (unwindToView != null) {
+                        val index = containerToUpdate.viewStates.indexOf(unwindToView)
+                        containerToUpdate.viewStates = containerToUpdate.viewStates.subList(0, index)
+                    } else if (containerToUpdate.viewStates.count() > 1) {
+                        containerToUpdate.viewStates = listOf(containerToUpdate.viewStates.first())
+                    }
+                }
+            }
+            is NavigationEvent.AppContextChanged -> {
+                state.appInForeground = event.inForeground
+            }
         }
+
+        return Pair(state, NavigationCommand())
     }
 }
 
@@ -48,13 +89,13 @@ interface ReactorViewState {
 typealias ViewContainerTag = String
 
 abstract class ViewContainerState {
-    abstract val containerTag: ViewContainerTag
+
+    abstract val tag: ViewContainerTag
     abstract var modal: ViewContainerState?
-    var parentContainerTag: ViewContainerTag? = null
-        internal set
+    var parentTag: ViewContainerTag? = null
 
     internal fun findSubstateWithTag(tag: ViewContainerTag): ViewContainerState? {
-        if (tag == containerTag) {
+        if (tag == this.tag) {
             return this
         } else if (modal?.findSubstateWithTag(tag) != null) {
             return modal?.findSubstateWithTag(tag)
@@ -68,14 +109,14 @@ abstract class ViewContainerState {
         return null
     }
 
-    internal fun findVisibleView() : ReactorViewState? {
+    internal fun findVisibleView(): ReactorViewState? {
         return findVisibleContainer()?.viewStates?.lastOrNull()
     }
 
     internal fun findVisibleContainer(): NavContainerState? {
         if (this.modal != null) {
             return this.modal?.findVisibleContainer()
-        }else if (this is TabContainerState) {
+        } else if (this is TabContainerState) {
             val visibleTab = this.tabContainers[selectedIndex]
             val visibleSubState = visibleTab.findVisibleContainer()
             if (visibleSubState != null) {
@@ -88,87 +129,44 @@ abstract class ViewContainerState {
         }
         return null
     }
-
-    abstract fun reactTo(event: Event)
 }
 
-
-data class TabContainerState(override val containerTag: ViewContainerTag, var tabContainers: List<ViewContainerState>) : ViewContainerState() {
-
+data class TabContainerState(override val tag: ViewContainerTag, val tabContainers: List<ViewContainerState>) : ViewContainerState() {
     override var modal: ViewContainerState? = null
     var selectedIndex: Int = 0
-
-    override fun reactTo(event: Event) {
-        if (event is NavigationEvent) {
-            if (event.containerId == this.containerTag) {
-                when (event) {
-                    is NavigationEvent.PresentModally -> {
-                        modal = event.viewContainer
-                        modal?.parentContainerTag = this.containerTag
-                    }
-                    is NavigationEvent.DismissModal -> modal = null
-                    is NavigationEvent.ChangeTabContainerIndex -> selectedIndex = event.selectedIndex
-                }
-            } else {
-                for (viewContainer in tabContainers){
-                    viewContainer.reactTo(event)
-                }
-                modal?.reactTo(event)
-            }
-        }
-    }
 }
 
-data class NavContainerState(override val containerTag: ViewContainerTag, var viewStates: List<ReactorViewState>) : ViewContainerState() {
+data class NavContainerState(override val tag: ViewContainerTag, var viewStates: List<ReactorViewState>) : ViewContainerState() {
 
     override var modal: ViewContainerState? = null
-
-    override fun reactTo(event: Event) {
-        if (event is NavigationEvent) {
-            if (event.containerId == this.containerTag) {
-                when (event) {
-                    is NavigationEvent.PresentModally -> {
-                        modal = event.viewContainer
-                        modal?.parentContainerTag = this.containerTag
-                    }
-                    is NavigationEvent.DismissModal -> modal = null
-                    is NavigationEvent.PopNavView -> {
-                        if (viewStates.count() > 1) {
-                            viewStates = viewStates.dropLast(1)
-                        }
-                    }
-                    is NavigationEvent.PushNavView -> {
-                        viewStates = viewStates.plus(event.view)
-                    }
-                    is NavigationEvent.UnwindToView -> {
-                        val unwindToView = event.view
-                        if (unwindToView != null) {
-                            val index = viewStates.indexOf(unwindToView)
-                        } else if (viewStates.count() > 1) {
-                            viewStates = listOf(viewStates.first())
-                        }
-                    }
-                }
-            } else {
-                modal?.reactTo(event)
-            }
-        }
-    }
 }
 
-private val overLayTag: ViewContainerTag = "Reactor Overlay"
 
-sealed class NavigationEvent(val containerId: ViewContainerTag) : Event {
+sealed class NavigationEvent(val containerId: ViewContainerTag): Event {
 
-    class PresentModally(val viewContainer: ViewContainerState, overContainerTag: ViewContainerTag) : NavigationEvent(overContainerTag)
+    class AppContextChanged(val inForeground: Boolean): NavigationEvent("rn_none")
+
+    class ChangeContainerIndex(
+        containerId: ViewContainerTag,
+        val selectedIndex: Int) : NavigationEvent(containerId)
+
+    class PresentModally(
+        overContainerTag: ViewContainerTag,
+        val viewContainer: ViewContainerState
+    ) : NavigationEvent(overContainerTag)
+
     class DismissModal(forContainer: ViewContainerTag) : NavigationEvent(forContainer)
 
-    class ChangeTabContainerIndex(containerId: ViewContainerTag, val selectedIndex: Int) : NavigationEvent(containerId)
+    class PushNavView(
+        containerId: ViewContainerTag,
+        val view: ReactorViewState) : NavigationEvent(containerId)
 
-    class PushNavView(val view: ReactorViewState, containerId: ViewContainerTag) : NavigationEvent(containerId)
-    class PopNavView(containerId: ViewContainerTag) : NavigationEvent(containerId)
-    class UnwindToView(val view: ReactorViewState?, containerId: ViewContainerTag) : NavigationEvent(containerId)
+    class PopNavView(
+        containerId: ViewContainerTag) : NavigationEvent(containerId)
 
-    class ShowOverlay(val viewState: ReactorViewState) : NavigationEvent(overLayTag)
-    class DismissOverlay : NavigationEvent(overLayTag)
+    class UnwindToView(
+        containerId: ViewContainerTag,
+        val view: ReactorViewState?) : NavigationEvent(containerId)
 }
+
+class NavigationCommand: Command

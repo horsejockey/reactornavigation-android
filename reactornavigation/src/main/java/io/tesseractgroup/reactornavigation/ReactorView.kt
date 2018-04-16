@@ -3,6 +3,7 @@ package io.tesseractgroup.reactornavigation
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,17 @@ fun View.className(): String {
 abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(context, null, 0), ViewStateConvertible, ViewTreeObserver.OnGlobalLayoutListener {
 
     private var viewLayedOut = false
+    private var viewIsVisible = false
+        set(value) {
+            if (field != value){
+                field = value
+                if (value){
+                    viewDidAppear()
+                }else{
+                    viewDidDisappear()
+                }
+            }
+        }
 
     init {
         Log.i("NAVIGATIION", "init in base view")
@@ -32,7 +44,8 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
             val mainHandler = Handler(Looper.getMainLooper())
             mainHandler.post {
                 Log.i("NAVIGATION", "Layout callback")
-                viewSetup()
+                val toolbar = (context as ReactorActivity).toolbar
+                viewSetup(toolbar)
                 onWindowVisibilityChanged(visibility)
             }
         }
@@ -44,23 +57,22 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
         var visibilityStr = "Visibile"
-        var hidden = false
+        val isVisible: Boolean
         when {
             visibility == View.GONE -> {
                 visibilityStr = "Gone"
-                hidden = true
+                isVisible = false
             }
             visibility == View.INVISIBLE -> {
                 visibilityStr = "Hidden"
-                hidden = true
+                isVisible = false
             }
             else -> {
-                hidden = false
+                isVisible = true
             }
         }
         if (viewLayedOut){
-            viewVisibilityChanged(hidden)
-            Log.i("NAVIGATION_${this.className()})", "Visibility changed: $visibilityStr")
+            viewIsVisible = isVisible
         }
     }
 
@@ -74,7 +86,16 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
         Log.i("NAVIGATION_${this.className()})", "detached from window")
     }
 
-    open fun viewVisibilityChanged(hidden: Boolean) {}
+    open fun viewDidAppear() {
+        Log.i("NAVIGATION_${this.className()})", "View did appear")
+    }
+    open fun viewDidDisappear() {
+        Log.i("NAVIGATION_${this.className()})", "View did disappear")
+    }
 
-    abstract fun viewSetup()
+    abstract fun viewSetup(toolbar: Toolbar)
+
+    open fun viewTearDown(){
+        Log.i("NAVIGATION_${this.className()})", "View tear down")
+    }
 }
