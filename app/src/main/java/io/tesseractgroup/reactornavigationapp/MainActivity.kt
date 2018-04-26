@@ -1,6 +1,7 @@
 package io.tesseractgroup.reactornavigationapp
 
 import android.os.Bundle
+import io.tesseractgroup.messagerouter.MessageRouter
 import io.tesseractgroup.reactor.Command
 import io.tesseractgroup.reactor.Core
 import io.tesseractgroup.reactor.Event
@@ -27,7 +28,7 @@ object App {
     }
 
 
-    val core = Core<AppState>(AppState("Hello World", NavigationState()), listOf(NavigationProcessor({ state: AppState -> state.navigationState }).processor), handler)
+    val core = Core<AppState>(AppState("Hello World", NavigationState()), listOf(ReactorNavigation::handler), handler)
 }
 
 sealed class AppEvent: Event {
@@ -47,13 +48,22 @@ class NavigationState : NavigationStateProtocol(){
     override var rootViewContainer: ViewContainerState = NavContainerState(NAV_CONT, listOf(NameViewState()))
 }
 
+object ReactorNavigation {
 
+    val navigationCommandReceived = MessageRouter<NavigationCommand>()
+
+    fun handler(core: Core<AppState>, command: Command) {
+        if (command is NavigationCommand) {
+            navigationCommandReceived.send(command)
+        }
+    }
+}
 
 
 class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.id.container_reactor) {
 
 
-    override var reactorViewModel: ReactorActivityViewModelInterface = ReactorActivityViewModel(App.core, { state: AppState -> state.navigationState })
+    override var reactorViewModel: ReactorActivityViewModelInterface = ReactorActivityViewModel(App.core, { state: AppState -> state.navigationState }, ReactorNavigation.navigationCommandReceived)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

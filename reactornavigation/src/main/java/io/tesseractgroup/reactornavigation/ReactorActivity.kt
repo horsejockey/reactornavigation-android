@@ -9,6 +9,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import io.tesseractgroup.messagerouter.MessageRouter
 import io.tesseractgroup.reactor.Command
 import io.tesseractgroup.reactor.Core
 import io.tesseractgroup.reactor.Event
@@ -40,6 +41,11 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
     override fun onResume() {
         super.onResume()
         reactorViewModel.fireEvent(NavigationEvent.AppContextChanged(true))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        reactorViewModel.destroy()
     }
 
     /**
@@ -98,6 +104,9 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
                 viewToRemove.viewTearDown()
             }
         } else if (!(view is ViewStateConvertible)) {
+            toolbar.setOnMenuItemClickListener(null)
+            toolbar.title = ""
+            toolbar.menu.clear()
             Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
             rootViewGroup.removeView(view)
             rootViewGroup.addView(reactorViewState.view(this))
@@ -143,31 +152,24 @@ interface ReactorActivityViewModelInterface {
     fun setDelegate(delegate: ReactorActivity?)
     fun navigationState(): NavigationStateProtocol
     fun fireEvent(event: Event)
+    val navigationCommandReceived: MessageRouter<NavigationCommand>
+    fun destroy()
 }
 
-class NavigationProcessor<State>(val navStateSelector: ((State) -> NavigationStateProtocol)) {
+class ReactorActivityViewModel<State>(val sharedCore: Core<State>, val navStateSelector: ((State) -> NavigationStateProtocol), override val navigationCommandReceived: MessageRouter<NavigationCommand>) : ReactorActivityViewModelInterface {
 
     private var delegate: WeakReference<ReactorActivity>? = null
 
-    fun setDelegate(delegate: ReactorActivity?) {
-        if (delegate != null) {
-            this.delegate = WeakReference(delegate)
-        } else {
-            this.delegate = null
-        }
-    }
-
-    val processor = fun(core: Core<State>, command: Command) {
-        if (command is NavigationCommand) {
-            val navState = navStateSelector(core.currentState)
+    init {
+        navigationCommandReceived.add(this) { command ->
+            val navState = navStateSelector(sharedCore.currentState)
             delegate?.get()?.updateWithNavState(navState, command)
         }
     }
-}
 
-class ReactorActivityViewModel<State>(val sharedCore: Core<State>, val navStateSelector: ((State) -> NavigationStateProtocol)) : ReactorActivityViewModelInterface {
-
-    private var delegate: WeakReference<ReactorActivity>? = null
+    override fun destroy(){
+        navigationCommandReceived.remove(this)
+    }
 
     override fun setDelegate(delegate: ReactorActivity?) {
         if (delegate != null) {

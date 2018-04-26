@@ -54,7 +54,7 @@ object Navigation {
             }
             is NavigationEvent.PopNavView -> {
                 if (containerToUpdate is NavContainerState && containerToUpdate.viewStates.count() > 1){
-                    containerToUpdate.viewStates = containerToUpdate.viewStates.drop(1)
+                    containerToUpdate.viewStates = containerToUpdate.viewStates.dropLast(1)
                 }
             }
             is NavigationEvent.UnwindToView -> {
