@@ -1,7 +1,7 @@
 package ${packageName};
 
 import android.content.Context
-import android.view.View 
+import android.support.v7.widget.Toolbar
 import io.tesseractgroup.reactornavigation.ReactorView
 import io.tesseractgroup.reactornavigation.ReactorViewState
 import io.tesseractgroup.reactornavigation.ViewStateConvertible
@@ -14,7 +14,7 @@ data class ${className}ViewState(val description: String = "${className}") : Rea
     }
 }
 
-class ${className}View(context: Context) : ReactorView(context, R.layout.view_${className}), ViewStateConvertible {
+class ${className}View(context: Context) : ReactorView(context, R.layout.view_${className?lower_case}), ViewStateConvertible {
 
     override fun state(): ReactorViewState {
         return ${className}ViewState()
