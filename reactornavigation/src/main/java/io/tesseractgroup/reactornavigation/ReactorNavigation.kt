@@ -82,7 +82,7 @@ interface ViewStateConvertible {
 }
 
 interface ReactorViewState {
-    fun view(context: Context): View
+    fun view(context: Context): ReactorView
     override fun equals(other: Any?): Boolean
 }
 
@@ -131,15 +131,9 @@ abstract class ViewContainerState {
     }
 }
 
-data class TabContainerState(override val tag: ViewContainerTag, val tabContainers: List<ViewContainerState>) : ViewContainerState() {
-    override var modal: ViewContainerState? = null
-    var selectedIndex: Int = 0
-}
+data class TabContainerState(override val tag: ViewContainerTag, val tabContainers: List<ViewContainerState>, override var modal: ViewContainerState? = null, var selectedIndex: Int = 0) : ViewContainerState()
 
-data class NavContainerState(override val tag: ViewContainerTag, var viewStates: List<ReactorViewState>) : ViewContainerState() {
-
-    override var modal: ViewContainerState? = null
-}
+data class NavContainerState(override val tag: ViewContainerTag, var viewStates: List<ReactorViewState>, override var modal: ViewContainerState? = null) : ViewContainerState()
 
 
 sealed class NavigationEvent(val containerId: ViewContainerTag): Event {

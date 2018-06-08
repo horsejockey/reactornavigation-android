@@ -1,6 +1,7 @@
 package io.tesseractgroup.reactornavigationapp
 
 import android.os.Bundle
+import android.util.Log
 import io.tesseractgroup.messagerouter.MessageRouter
 import io.tesseractgroup.reactor.Command
 import io.tesseractgroup.reactor.Core
@@ -67,6 +68,5 @@ class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
     }
 }

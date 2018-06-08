@@ -5,12 +5,12 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.util.Log
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import io.tesseractgroup.messagerouter.MessageRouter
-import io.tesseractgroup.reactor.Command
 import io.tesseractgroup.reactor.Core
 import io.tesseractgroup.reactor.Event
 import java.lang.ref.WeakReference
@@ -25,12 +25,20 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
 
     lateinit var toolbar: Toolbar
 
+    private var activityCreated = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(layoutId)
         super.onCreate(savedInstanceState)
         toolbar = findViewById(toolbarId)
         setSupportActionBar(toolbar)
         reactorViewModel.setDelegate(this)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        activityCreated = true
+        updateWithNavState(reactorViewModel.navigationState(), NavigationCommand())
+        return super.onCreateOptionsMenu(menu)
     }
 
     override fun onPause() {
@@ -74,6 +82,10 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
     private var transitioningMainView = false
 
     private fun showView(reactorViewState: ReactorViewState, command: NavigationCommand) {
+        if (activityCreated == false) {
+            Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
+            return
+        }
         if (transitioningMainView) {
             Log.e("NAVIGATION", "Dropping navigation event. In the middle of a transition.")
             return
@@ -88,11 +100,16 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
         }
 
         transitioningMainView = true
-        if (view is ViewStateConvertible && view.state() != reactorViewState) {
+        if (view is ViewStateConvertible && view.state() != reactorViewState || view !is ViewStateConvertible) {
             toolbar.setOnMenuItemClickListener(null)
             toolbar.title = ""
             toolbar.menu.clear()
-            Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.state()}")
+            if (view is ViewStateConvertible) {
+                Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.state()}")
+            } else {
+                Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
+            }
+
             hideSoftKeyBoard()
             val viewToRemove = view
             val viewToShow = reactorViewState.view(this)
@@ -103,13 +120,6 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
             if (viewToRemove is ReactorView) {
                 viewToRemove.viewTearDown()
             }
-        } else if (!(view is ViewStateConvertible)) {
-            toolbar.setOnMenuItemClickListener(null)
-            toolbar.title = ""
-            toolbar.menu.clear()
-            Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
-            rootViewGroup.removeView(view)
-            rootViewGroup.addView(reactorViewState.view(this))
         }
         transitioningMainView = false
     }
@@ -167,7 +177,7 @@ class ReactorActivityViewModel<State>(val sharedCore: Core<State>, val navStateS
         }
     }
 
-    override fun destroy(){
+    override fun destroy() {
         navigationCommandReceived.remove(this)
     }
 

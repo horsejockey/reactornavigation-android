@@ -18,7 +18,7 @@ fun View.className(): String {
     return "${this::class}".split(".").last()
 }
 
-abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(context, null, 0), ViewStateConvertible, ViewTreeObserver.OnGlobalLayoutListener {
+abstract class ReactorView(context: Context, private val layoutId: Int) : FrameLayout(context, null, 0), ViewStateConvertible {
 
     private var viewLayedOut = false
     private var viewIsVisible = false
@@ -33,38 +33,21 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
             }
         }
 
-    init {
-        Log.i("NAVIGATIION", "init in base view")
+    private fun inflateLayout(){
         LayoutInflater.from(context).inflate(layoutId, this)
-        viewTreeObserver.addOnGlobalLayoutListener(this)
-    }
-
-    override fun onGlobalLayout() {
-        if (!viewLayedOut){
-            val mainHandler = Handler(Looper.getMainLooper())
-            mainHandler.post {
-                Log.i("NAVIGATION", "Layout callback")
-                val toolbar = (context as ReactorActivity).toolbar
-                viewSetup(toolbar)
-                onWindowVisibilityChanged(visibility)
-            }
-        }
-        viewLayedOut = true
-
-        viewTreeObserver.removeOnGlobalLayoutListener(this)
+        val toolbar = (context as ReactorActivity).toolbar
+        viewSetup(toolbar)
+        this.rootView.requestLayout()
     }
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        var visibilityStr = "Visibile"
         val isVisible: Boolean
         when {
             visibility == View.GONE -> {
-                visibilityStr = "Gone"
                 isVisible = false
             }
             visibility == View.INVISIBLE -> {
-                visibilityStr = "Hidden"
                 isVisible = false
             }
             else -> {
@@ -79,6 +62,11 @@ abstract class ReactorView(context: Context, layoutId: Int) : FrameLayout(contex
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         Log.i("NAVIGATION_${this.className()})", "attached to window")
+        if(!viewLayedOut){
+            inflateLayout()
+            viewIsVisible = true
+            viewLayedOut = true
+        }
     }
 
     override fun onDetachedFromWindow() {
