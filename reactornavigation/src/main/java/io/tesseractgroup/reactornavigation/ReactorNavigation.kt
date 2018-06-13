@@ -61,7 +61,7 @@ object Navigation {
                 if (containerToUpdate is NavContainerState){
                     val unwindToView = event.view
                     if (unwindToView != null) {
-                        val index = containerToUpdate.viewStates.indexOf(unwindToView)
+                        val index = containerToUpdate.viewStates.indexOf(unwindToView) + 1
                         containerToUpdate.viewStates = containerToUpdate.viewStates.subList(0, index)
                     } else if (containerToUpdate.viewStates.count() > 1) {
                         containerToUpdate.viewStates = listOf(containerToUpdate.viewStates.first())
