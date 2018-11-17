@@ -1,72 +1,41 @@
 package io.tesseractgroup.reactornavigationapp
 
-import android.os.Bundle
 import android.util.Log
-import io.tesseractgroup.messagerouter.MessageRouter
-import io.tesseractgroup.reactor.Command
 import io.tesseractgroup.reactor.Core
-import io.tesseractgroup.reactor.Event
+import io.tesseractgroup.reactor.CoreUpdate
 import io.tesseractgroup.reactornavigation.*
 
 object App {
-    private val handler = fun(state: AppState, event: Event): Pair<AppState, Command> {
-        when(event){
-            is AppEvent -> {
-                when(event){
-                    is AppEvent.UpdateName -> {
-                        val updatedState = state.copy(name = event.name)
-                        return Pair(updatedState, AppCommand.NoOp())
-                    }
-                }
-            }
-            is NavigationEvent -> {
-                val updates = Navigation.handler(state.navigationState, event)
-                val updatedState = state.copy(navigationState = updates.first)
-                return Pair(updatedState, updates.second)
+    private val handler = fun(state: AppState, event: AppEvent): CoreUpdate<AppState, AppCommand> {
+        Log.d("NAVIGATION", "Stack: $event}")
+        when (event) {
+            is AppEvent.UpdateName -> {
+                val updatedState = state.copy(name = event.name)
+                return CoreUpdate.State(updatedState)
             }
         }
-        return Pair(state, AppCommand.NoOp())
     }
 
-
-    val core = Core<AppState>(AppState("Hello World", NavigationState()), listOf(ReactorNavigation::handler), handler)
+    val core = Core(AppState("Hello World"), listOf(), handler)
+    val navigationCore = Navigation.createNavigationCore(NavigationState())
 }
 
-sealed class AppEvent: Event {
-    data class UpdateName(val name: String?): AppEvent()
+sealed class AppEvent {
+    data class UpdateName(val name: String?) : AppEvent()
 }
 
-sealed class AppCommand: Command {
-    class NoOp: AppCommand()
+sealed class AppCommand {
 }
 
-data class AppState(val name: String?, val navigationState: NavigationStateProtocol)
+data class AppState(val name: String?)
 
 const val NAV_CONT = "Main Container"
 
-class NavigationState : NavigationStateProtocol(){
+class NavigationState : NavigationStateProtocol() {
 
-    override var rootViewContainer: ViewContainerState = NavContainerState(NAV_CONT, listOf(NameViewState()))
+    override var rootViewContainer: ViewContainerState = NavContainerState(NAV_CONT, listOf(NameViewState("Initial View")))
 }
 
-object ReactorNavigation {
+class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.id.container_reactor, App.navigationCore) {
 
-    val navigationCommandReceived = MessageRouter<NavigationCommand>()
-
-    fun handler(core: Core<AppState>, command: Command) {
-        if (command is NavigationCommand) {
-            navigationCommandReceived.send(command)
-        }
-    }
-}
-
-
-class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.id.container_reactor) {
-
-
-    override var reactorViewModel: ReactorActivityViewModelInterface = ReactorActivityViewModel(App.core, { state: AppState -> state.navigationState }, ReactorNavigation.navigationCommandReceived)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
 }

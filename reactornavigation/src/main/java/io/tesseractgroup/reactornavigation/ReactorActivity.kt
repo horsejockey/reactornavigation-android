@@ -10,56 +10,64 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import io.tesseractgroup.messagerouter.MessageRouter
 import io.tesseractgroup.reactor.Core
-import io.tesseractgroup.reactor.Event
-import java.lang.ref.WeakReference
 
 /**
  * PrototypeBluetoothLibrary
  * Created by matt on 11/29/17.
  */
-abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reactorContainerId: Int) : AppCompatActivity() {
-
-    abstract var reactorViewModel: ReactorActivityViewModelInterface
+abstract class ReactorActivity(
+    private val layoutId: Int,
+    private val toolbarId: Int,
+    private val reactorContainerId: Int,
+    private val navigationCore: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand>) : AppCompatActivity() {
 
     lateinit var toolbar: Toolbar
 
     private var activityCreated = false
+    private lateinit var rootViewGroup: ViewGroup
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(layoutId)
         super.onCreate(savedInstanceState)
+
+        rootViewGroup = findViewById(reactorContainerId)
         toolbar = findViewById(toolbarId)
+
         setSupportActionBar(toolbar)
-        reactorViewModel.setDelegate(this)
+        Navigation.navigationCommandReceived.add(this, ::navigationCommandReceived)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         activityCreated = true
-        updateWithNavState(reactorViewModel.navigationState(), NavigationCommand())
+        updateWithNavState(navigationCore.currentState, NavigationCommand())
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onPause() {
         super.onPause()
-        reactorViewModel.fireEvent(NavigationEvent.AppContextChanged(false))
+        navigationCore.fire(NavigationEvent.AppContextChanged(false))
+
     }
 
     override fun onResume() {
         super.onResume()
-        reactorViewModel.fireEvent(NavigationEvent.AppContextChanged(true))
+        navigationCore.fire(NavigationEvent.AppContextChanged(true))
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        reactorViewModel.destroy()
+        Navigation.navigationCommandReceived.remove(this)
+    }
+
+    private fun navigationCommandReceived(navigationCommand: NavigationCommand) {
+        updateWithNavState(navigationCore.currentState, navigationCommand)
     }
 
     /**
      * Responds to state changes by displaying the current visible view.
      */
-    open fun updateWithNavState(state: NavigationStateProtocol, command: NavigationCommand) {
+    private fun updateWithNavState(state: NavigationStateProtocol, command: NavigationCommand) {
 
         val visibleContainer = state.findVisibleContainer()
         val visibleViewState = state.findVisibleView()
@@ -81,21 +89,20 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
      */
     private var transitioningMainView = false
 
-    private fun showView(reactorViewState: ReactorViewState, command: NavigationCommand) {
+    private fun showView(reactorViewState: ReactorViewState, @Suppress("UNUSED_PARAMETER") command: NavigationCommand) {
         if (activityCreated == false) {
             Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
             return
         }
         if (transitioningMainView) {
-            Log.e("NAVIGATION", "Dropping navigation event. In the middle of a transition.")
+            Log.e("NAVIGATION", "In the middle of a transition. Dropping view transition.")
             return
         }
         val view: View?
-        val rootViewGroup = findViewById<ViewGroup>(reactorContainerId)
         if (rootViewGroup.childCount > 0) {
             view = rootViewGroup.getChildAt(0)
         } else {
-            Log.e("NAVIGATION", "Dropping navigation event. In the middle of a transition.")
+            Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
             return
         }
 
@@ -145,55 +152,16 @@ abstract class ReactorActivity(val layoutId: Int, val toolbarId: Int, val reacto
     }
 
     override fun onBackPressed() {
-        val state = reactorViewModel.navigationState()
+        val state = navigationCore.currentState
         val selectedContainer = state.rootViewContainer.findVisibleContainer()
         val parentContainerTag = selectedContainer?.parentTag
         if (parentContainerTag != null) {
-            reactorViewModel.fireEvent(NavigationEvent.DismissModal(parentContainerTag))
+            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag))
         } else if (selectedContainer != null && selectedContainer.viewStates.count() > 1) {
-            reactorViewModel.fireEvent(NavigationEvent.PopNavView(selectedContainer.tag))
+            navigationCore.fire(NavigationEvent.PopNavView(selectedContainer.tag))
         } else {
             finish()
         }
     }
 }
 
-interface ReactorActivityViewModelInterface {
-    fun setDelegate(delegate: ReactorActivity?)
-    fun navigationState(): NavigationStateProtocol
-    fun fireEvent(event: Event)
-    val navigationCommandReceived: MessageRouter<NavigationCommand>
-    fun destroy()
-}
-
-class ReactorActivityViewModel<State>(val sharedCore: Core<State>, val navStateSelector: ((State) -> NavigationStateProtocol), override val navigationCommandReceived: MessageRouter<NavigationCommand>) : ReactorActivityViewModelInterface {
-
-    private var delegate: WeakReference<ReactorActivity>? = null
-
-    init {
-        navigationCommandReceived.add(this) { command ->
-            val navState = navStateSelector(sharedCore.currentState)
-            delegate?.get()?.updateWithNavState(navState, command)
-        }
-    }
-
-    override fun destroy() {
-        navigationCommandReceived.remove(this)
-    }
-
-    override fun setDelegate(delegate: ReactorActivity?) {
-        if (delegate != null) {
-            this.delegate = WeakReference(delegate)
-        } else {
-            this.delegate = null
-        }
-    }
-
-    override fun navigationState(): NavigationStateProtocol {
-        return navStateSelector(sharedCore.currentState)
-    }
-
-    override fun fireEvent(event: Event) {
-        sharedCore.fire(event)
-    }
-}

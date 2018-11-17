@@ -18,8 +18,9 @@ fun View.className(): String {
     return "${this::class}".split(".").last()
 }
 
-abstract class ReactorView(context: Context, private val layoutId: Int) : FrameLayout(context, null, 0), ViewStateConvertible {
+abstract class ReactorView(context: Context, private val layoutId: Int) : FrameLayout(context, null, 0), ViewStateConvertible, ViewTreeObserver.OnGlobalLayoutListener {
 
+    private var layoutRequested = false
     private var viewLayedOut = false
     private var viewIsVisible = false
         set(value) {
@@ -61,17 +62,19 @@ abstract class ReactorView(context: Context, private val layoutId: Int) : FrameL
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        Log.i("NAVIGATION_${this.className()})", "attached to window")
-        if(!viewLayedOut){
+        if(!layoutRequested){
+            layoutRequested = true
+            this.viewTreeObserver.addOnGlobalLayoutListener(this)
             inflateLayout()
-            viewIsVisible = true
-            viewLayedOut = true
         }
     }
 
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        Log.i("NAVIGATION_${this.className()})", "detached from window")
+    override fun onGlobalLayout(){
+        this.viewTreeObserver.removeOnGlobalLayoutListener(this)
+        if (!viewLayedOut){
+            viewLayedOut = true
+            viewIsVisible = true
+        }
     }
 
     open fun viewDidAppear() {

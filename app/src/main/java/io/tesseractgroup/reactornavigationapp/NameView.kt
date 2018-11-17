@@ -5,19 +5,17 @@ import android.support.v7.widget.Toolbar
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
-import android.view.View
-import android.widget.ImageView
 import io.tesseractgroup.reactornavigation.*
 import kotlinx.android.synthetic.main.view_name.view.*
 
-data class NameViewState(val description: String = "Name") : ReactorViewState {
+data class NameViewState(val test: String ) : ReactorViewState {
 
     override fun view(context: Context): NameView {
-        return NameView(context)
+        return NameView(context, test)
     }
 }
 
-class NameView(context: Context) : ReactorView(context, R.layout.view_name), ViewStateConvertible {
+class NameView(context: Context, val test: String) : ReactorView(context, R.layout.view_name), ViewStateConvertible {
 
     override fun viewSetup(toolbar: Toolbar) {
 
@@ -25,7 +23,7 @@ class NameView(context: Context) : ReactorView(context, R.layout.view_name), Vie
 
         Log.i("NAVIGATION_${this.className()})", "View setup")
 
-//        editText_name.setText("Hello world.")
+        textView_savedState.setText(test)
 
         editText_name.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -40,18 +38,18 @@ class NameView(context: Context) : ReactorView(context, R.layout.view_name), Vie
         })
 
         button.setOnClickListener {
-            App.core.fire(NavigationEvent.PushNavView(NAV_CONT, NameViewState(editText_name.text.toString())))
+            App.navigationCore.fire(NavigationEvent.PushNavView(NAV_CONT, NameViewState(editText_name.text.toString())))
         }
 
+        setupToolbar(toolbar)
     }
 
     override fun state(): ReactorViewState {
-        return NameViewState()
+        return NameViewState(test)
     }
 
     override fun viewDidAppear() {
         super.viewDidAppear()
-        setupToolbar((context as MainActivity).toolbar)
     }
 
     override fun viewDidDisappear() {
