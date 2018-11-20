@@ -35,7 +35,7 @@ abstract class ReactorActivity(
         toolbar = findViewById(toolbarId)
 
         setSupportActionBar(toolbar)
-        Navigation.navigationCommandReceived.add(this, ::navigationCommandReceived)
+        ReactorNavigation.navigationCommandReceived.add(this, ::navigationCommandReceived)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -57,7 +57,7 @@ abstract class ReactorActivity(
 
     override fun onDestroy() {
         super.onDestroy()
-        Navigation.navigationCommandReceived.remove(this)
+        ReactorNavigation.navigationCommandReceived.remove(this)
     }
 
     private fun navigationCommandReceived(navigationCommand: NavigationCommand) {

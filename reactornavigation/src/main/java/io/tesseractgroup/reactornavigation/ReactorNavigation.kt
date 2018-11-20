@@ -31,7 +31,7 @@ abstract class NavigationStateProtocol {
     }
 }
 
-object Navigation {
+object ReactorNavigation {
 
     fun createNavigationCore(
         state: NavigationStateProtocol,
@@ -87,7 +87,7 @@ object Navigation {
         return CoreUpdate.StateAndCommands(state, listOf(NavigationCommand()))
     }
 
-    internal val navigationCommandReceived = MessageRouter<NavigationCommand>()
+    val navigationCommandReceived = MessageRouter<NavigationCommand>()
 
     private fun commandProcessor(@Suppress("UNUSED_PARAMETER") core: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand>, command: NavigationCommand) {
         navigationCommandReceived.send(command)

@@ -17,7 +17,7 @@ object App {
     }
 
     val core = Core(AppState("Hello World"), listOf(), handler)
-    val navigationCore = Navigation.createNavigationCore(NavigationState())
+    val navigationCore = ReactorNavigation.createNavigationCore(NavigationState())
 }
 
 sealed class AppEvent {
