@@ -35,7 +35,7 @@ abstract class ReactorActivity(
         toolbar = findViewById(toolbarId)
 
         setSupportActionBar(toolbar)
-        ReactorNavigation.navigationCommandReceived.add(this, ::navigationCommandReceived)
+        ReactorNavigation.navigationCommandReceived.addMultipleCallbacks(this, ::navigationCommandReceived)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
