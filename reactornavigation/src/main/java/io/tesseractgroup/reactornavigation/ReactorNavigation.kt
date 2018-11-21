@@ -148,9 +148,20 @@ abstract class ViewContainerState {
     }
 }
 
-data class TabContainerState(override val tag: ViewContainerTag, val tabContainers: List<ViewContainerState>, override var modal: ViewContainerState? = null, var selectedIndex: Int = 0) : ViewContainerState()
+data class TabContainerState(override val tag: ViewContainerTag, val tabContainers: List<ViewContainerState>, override var modal: ViewContainerState? = null, var selectedIndex: Int = 0) : ViewContainerState() {
+    init {
+        for (container in tabContainers) {
+            container.parentTag = tag
+        }
+        modal?.parentTag = tag
+    }
+}
 
-data class NavContainerState(override val tag: ViewContainerTag, var viewStates: List<ReactorViewState>, override var modal: ViewContainerState? = null) : ViewContainerState()
+data class NavContainerState(override val tag: ViewContainerTag, var viewStates: List<ReactorViewState>, override var modal: ViewContainerState? = null) : ViewContainerState() {
+    init {
+        modal?.parentTag = parentTag
+    }
+}
 
 sealed class NavigationEvent(val containerId: ViewContainerTag) {
 
