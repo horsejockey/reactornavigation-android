@@ -18,7 +18,7 @@ abstract class NavigationStateProtocol {
     abstract var rootViewContainer: ViewContainerState
     var appInForeground: Boolean = true
 
-    private fun findSubstateWithTag(tag: ViewContainerTag): ViewContainerState? {
+    internal fun findSubstateWithTag(tag: ViewContainerTag): ViewContainerState? {
         return rootViewContainer.findSubstateWithTag(tag)
     }
 

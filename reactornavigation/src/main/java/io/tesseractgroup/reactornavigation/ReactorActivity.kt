@@ -68,19 +68,20 @@ abstract class ReactorActivity(
      * Responds to state changes by displaying the current visible view.
      */
     private fun updateWithNavState(state: NavigationStateProtocol, command: NavigationCommand) {
+        runOnUiThread {
+            val visibleContainer = state.findVisibleContainer()
+            val visibleViewState = state.findVisibleView()
 
-        val visibleContainer = state.findVisibleContainer()
-        val visibleViewState = state.findVisibleView()
-
-        // Get visible View
-        if (visibleViewState != null) {
-            showView(visibleViewState, command)
-        }
-        // Show up button for children views
-        if (visibleContainer != null && visibleContainer.viewStates.count() > 1) {
-            supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        } else {
-            supportActionBar?.setDisplayHomeAsUpEnabled(false)
+            // Get visible View
+            if (visibleViewState != null) {
+                showView(visibleViewState, command)
+            }
+            // Show up button for children views
+            if (visibleContainer != null && visibleContainer.viewStates.count() > 1) {
+                supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            } else {
+                supportActionBar?.setDisplayHomeAsUpEnabled(false)
+            }
         }
     }
 
@@ -155,10 +156,10 @@ abstract class ReactorActivity(
         val state = navigationCore.currentState
         val selectedContainer = state.rootViewContainer.findVisibleContainer()
         val parentContainerTag = selectedContainer?.parentTag
-        if (parentContainerTag != null) {
-            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag))
-        } else if (selectedContainer != null && selectedContainer.viewStates.count() > 1) {
+        if (selectedContainer != null && selectedContainer.viewStates.count() > 1) {
             navigationCore.fire(NavigationEvent.PopNavView(selectedContainer.tag))
+        } else if (parentContainerTag != null && (state.rootViewContainer.tag != parentContainerTag || state.rootViewContainer is NavContainerState)) {
+            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag))
         } else {
             finish()
         }
