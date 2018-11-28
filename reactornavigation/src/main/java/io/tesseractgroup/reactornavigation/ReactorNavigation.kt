@@ -79,6 +79,17 @@ object ReactorNavigation {
                     }
                 }
             }
+            is NavigationEvent.ReplaceNavView -> {
+                if (containerToUpdate is NavContainerState) {
+                    containerToUpdate.viewStates = containerToUpdate.viewStates.dropLast(1)
+                    containerToUpdate.viewStates = containerToUpdate.viewStates.plus(event.view)
+                }
+            }
+            is NavigationEvent.ReplaceNavViewStack -> {
+                if (containerToUpdate is NavContainerState) {
+                    containerToUpdate.viewStates = event.views
+                }
+            }
             is NavigationEvent.AppContextChanged -> {
                 state.appInForeground = event.inForeground
             }
@@ -181,6 +192,14 @@ sealed class NavigationEvent(val containerId: ViewContainerTag) {
     class PushNavView(
         containerId: ViewContainerTag,
         val view: ReactorViewState) : NavigationEvent(containerId)
+
+    class ReplaceNavView(
+        containerId: ViewContainerTag,
+        val view: ReactorViewState) : NavigationEvent(containerId)
+
+    class ReplaceNavViewStack(
+        containerId: ViewContainerTag,
+        val views: List<ReactorViewState>) : NavigationEvent(containerId)
 
     class PopNavView(
         containerId: ViewContainerTag) : NavigationEvent(containerId)
