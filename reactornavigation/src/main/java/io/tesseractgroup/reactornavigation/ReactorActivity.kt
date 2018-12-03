@@ -19,9 +19,9 @@ import io.tesseractgroup.reactor.Core
 abstract class ReactorActivity(
     private val layoutId: Int,
     private val toolbarId: Int,
-    private val reactorContainerId: Int,
-    private val navigationCore: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand>) : AppCompatActivity() {
+    private val reactorContainerId: Int) : AppCompatActivity() {
 
+    abstract val navigationCore: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand>
     lateinit var toolbar: Toolbar
 
     private var activityCreated = false

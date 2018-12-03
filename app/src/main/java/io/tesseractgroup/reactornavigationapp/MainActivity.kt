@@ -1,7 +1,6 @@
 package io.tesseractgroup.reactornavigationapp
 
 import android.util.Log
-import android.view.View
 import io.tesseractgroup.reactor.Core
 import io.tesseractgroup.reactor.CoreUpdate
 import io.tesseractgroup.reactornavigation.*
@@ -37,6 +36,7 @@ class NavigationState : NavigationStateProtocol() {
     override var rootViewContainer: ViewContainerState = NavContainerState(NAV_CONT, listOf(NameViewState("Initial View")))
 }
 
-class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.id.container_reactor, App.navigationCore) {
+class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.id.container_reactor) {
 
+    override val navigationCore: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand> = App.navigationCore
 }
