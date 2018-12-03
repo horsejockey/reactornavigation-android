@@ -120,7 +120,7 @@ abstract class ReactorActivity(
 
             hideSoftKeyBoard()
             val viewToRemove = view
-            val viewToShow = reactorViewState.view(this)
+            val viewToShow = getViewForState(reactorViewState)
 
             rootViewGroup.removeView(viewToRemove)
             rootViewGroup.addView(viewToShow)
@@ -130,6 +130,10 @@ abstract class ReactorActivity(
             }
         }
         transitioningMainView = false
+    }
+
+    open fun getViewForState(reactorViewState: ReactorViewState): ReactorView {
+        return reactorViewState.view(this)
     }
 
     private fun hideSoftKeyBoard() {
