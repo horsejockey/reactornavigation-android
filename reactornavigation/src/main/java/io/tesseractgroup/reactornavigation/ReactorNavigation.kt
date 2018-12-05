@@ -212,6 +212,5 @@ sealed class NavigationEvent(val containerId: ViewContainerTag) {
         val view: ReactorViewState?) : NavigationEvent(containerId)
 
     class ReplaceRootContainer(
-        containerId: ViewContainerTag,
         val container: ViewContainerState) : NavigationEvent("rn_none")
 }
