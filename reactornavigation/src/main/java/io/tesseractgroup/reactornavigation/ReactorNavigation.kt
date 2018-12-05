@@ -93,6 +93,9 @@ object ReactorNavigation {
             is NavigationEvent.AppContextChanged -> {
                 state.appInForeground = event.inForeground
             }
+            is NavigationEvent.ReplaceRootContainer -> {
+                state.rootViewContainer = event.container
+            }
         }
 
         return CoreUpdate.StateAndCommands(state, listOf(NavigationCommand()))
@@ -207,4 +210,8 @@ sealed class NavigationEvent(val containerId: ViewContainerTag) {
     class UnwindToView(
         containerId: ViewContainerTag,
         val view: ReactorViewState?) : NavigationEvent(containerId)
+
+    class ReplaceRootContainer(
+        containerId: ViewContainerTag,
+        val container: ViewContainerState) : NavigationEvent(containerId)
 }

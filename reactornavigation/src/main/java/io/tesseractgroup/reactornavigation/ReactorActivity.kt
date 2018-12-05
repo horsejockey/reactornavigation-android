@@ -56,6 +56,10 @@ abstract class ReactorActivity(
     }
 
     override fun onDestroy() {
+        if (rootViewGroup.childCount > 0){
+            val view = rootViewGroup.getChildAt(0)
+            if (view is ReactorView) view.viewTearDown()
+        }
         super.onDestroy()
         ReactorNavigation.navigationCommandReceived.remove(this)
     }
