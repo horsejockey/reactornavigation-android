@@ -9,7 +9,7 @@ import android.util.Log
 import io.tesseractgroup.reactornavigation.*
 import kotlinx.android.synthetic.main.view_name.view.*
 
-class NameViewState : ReactorViewState {
+class NameViewState(val name: String ) : ReactorViewState {
 
     var editTextName: String = ""
 
