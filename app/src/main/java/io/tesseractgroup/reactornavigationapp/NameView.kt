@@ -1,5 +1,6 @@
 package io.tesseractgroup.reactornavigationapp;
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.support.v7.widget.Toolbar
 import android.text.Editable
@@ -8,14 +9,17 @@ import android.util.Log
 import io.tesseractgroup.reactornavigation.*
 import kotlinx.android.synthetic.main.view_name.view.*
 
-data class NameViewState(val test: String ) : ReactorViewState {
+class NameViewState(val name: String ) : ReactorViewState {
+
+    var editTextName: String = ""
 
     override fun view(context: Context): NameView {
-        return NameView(context, test)
+        return NameView(context, name, this)
     }
 }
 
-class NameView(context: Context, val test: String) : ReactorView(context, R.layout.view_name), ViewStateConvertible {
+@SuppressLint("ViewConstructor")
+class NameView(context: Context, val name: String, override val viewState: NameViewState) : ReactorView(context, R.layout.view_name, viewState) {
 
     override fun viewSetup(toolbar: Toolbar) {
 
@@ -23,11 +27,12 @@ class NameView(context: Context, val test: String) : ReactorView(context, R.layo
 
         Log.i("NAVIGATION_${this.className()})", "View setup")
 
-        textView_savedState.setText(test)
+        textView_savedState.setText(name)
 
         editText_name.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 val text = s.toString()
+                viewState.editTextName = text
                 App.core.fire(AppEvent.UpdateName(text))
             }
 
@@ -37,15 +42,13 @@ class NameView(context: Context, val test: String) : ReactorView(context, R.layo
 
         })
 
+        editText_name.setText(viewState.editTextName)
+
         button.setOnClickListener {
             App.navigationCore.fire(NavigationEvent.PushNavView(NAV_CONT, NameViewState(editText_name.text.toString())))
         }
 
         setupToolbar(toolbar)
-    }
-
-    override fun state(): ReactorViewState {
-        return NameViewState(test)
     }
 
     override fun viewDidAppear() {

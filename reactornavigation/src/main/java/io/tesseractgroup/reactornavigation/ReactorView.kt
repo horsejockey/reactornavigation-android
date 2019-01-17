@@ -1,8 +1,6 @@
 package io.tesseractgroup.reactornavigation
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.view.LayoutInflater
@@ -18,23 +16,23 @@ fun View.className(): String {
     return "${this::class}".split(".").last()
 }
 
-abstract class ReactorView(context: Context, private val layoutId: Int) : FrameLayout(context, null, 0), ViewStateConvertible, ViewTreeObserver.OnGlobalLayoutListener {
+abstract class ReactorView(context: Context, private val layoutId: Int, open val viewState: ReactorViewState) : FrameLayout(context, null, 0), ViewTreeObserver.OnGlobalLayoutListener {
 
     private var layoutRequested = false
     private var viewLayedOut = false
     private var viewIsVisible = false
         set(value) {
-            if (field != value){
+            if (field != value) {
                 field = value
-                if (value){
+                if (value) {
                     viewDidAppear()
-                }else{
+                } else {
                     viewDidDisappear()
                 }
             }
         }
 
-    private fun inflateLayout(){
+    private fun inflateLayout() {
         LayoutInflater.from(context).inflate(layoutId, this)
         val toolbar = (context as ReactorActivity).toolbar
         viewSetup(toolbar)
@@ -55,23 +53,23 @@ abstract class ReactorView(context: Context, private val layoutId: Int) : FrameL
                 isVisible = true
             }
         }
-        if (viewLayedOut){
+        if (viewLayedOut) {
             viewIsVisible = isVisible
         }
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if(!layoutRequested){
+        if (!layoutRequested) {
             layoutRequested = true
             this.viewTreeObserver.addOnGlobalLayoutListener(this)
             inflateLayout()
         }
     }
 
-    override fun onGlobalLayout(){
+    override fun onGlobalLayout() {
         this.viewTreeObserver.removeOnGlobalLayoutListener(this)
-        if (!viewLayedOut){
+        if (!viewLayedOut) {
             viewLayedOut = true
             viewIsVisible = true
         }
@@ -80,13 +78,14 @@ abstract class ReactorView(context: Context, private val layoutId: Int) : FrameL
     open fun viewDidAppear() {
         Log.i("NAVIGATION_${this.className()})", "View did appear")
     }
+
     open fun viewDidDisappear() {
         Log.i("NAVIGATION_${this.className()})", "View did disappear")
     }
 
     abstract fun viewSetup(toolbar: Toolbar)
 
-    open fun viewTearDown(){
+    open fun viewTearDown() {
         Log.i("NAVIGATION_${this.className()})", "View tear down")
     }
 }

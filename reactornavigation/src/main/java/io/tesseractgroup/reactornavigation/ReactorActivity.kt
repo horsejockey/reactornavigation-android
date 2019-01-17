@@ -40,7 +40,7 @@ abstract class ReactorActivity(
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         activityCreated = true
-        updateWithNavState(navigationCore.currentState, NavigationCommand())
+        updateWithNavState(navigationCore.currentState, NavigationCommand.RootContainerChanged)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -72,6 +72,7 @@ abstract class ReactorActivity(
      * Responds to state changes by displaying the current visible view.
      */
     private fun updateWithNavState(state: NavigationStateProtocol, command: NavigationCommand) {
+        if (command !is VisibleViewChanged) return
         runOnUiThread {
             val visibleContainer = state.findVisibleContainer()
             val visibleViewState = state.findVisibleView()
@@ -112,12 +113,12 @@ abstract class ReactorActivity(
         }
 
         transitioningMainView = true
-        if (view is ViewStateConvertible && view.state() != reactorViewState || view !is ViewStateConvertible) {
+        if (view is ReactorView && view.viewState != reactorViewState || view !is ReactorView) {
             toolbar.setOnMenuItemClickListener(null)
             toolbar.title = ""
             toolbar.menu.clear()
-            if (view is ViewStateConvertible) {
-                Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.state()}")
+            if (view is ReactorView) {
+                Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.viewState}")
             } else {
                 Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
             }

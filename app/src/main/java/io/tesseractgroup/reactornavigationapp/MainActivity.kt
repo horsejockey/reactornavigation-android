@@ -1,5 +1,6 @@
 package io.tesseractgroup.reactornavigationapp
 
+import android.os.Bundle
 import android.util.Log
 import io.tesseractgroup.reactor.Core
 import io.tesseractgroup.reactor.CoreUpdate
