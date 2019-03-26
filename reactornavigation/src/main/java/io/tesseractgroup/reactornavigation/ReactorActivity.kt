@@ -2,6 +2,7 @@ package io.tesseractgroup.reactornavigation
 
 import android.content.Context
 import android.os.Bundle
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.util.Log
@@ -45,27 +46,56 @@ abstract class ReactorActivity(
     }
 
     override fun onPause() {
+        val view = displayedView()
+        if (view != null && view is ReactorView) view.viewIsVisible = false
         super.onPause()
         navigationCore.fire(NavigationEvent.AppContextChanged(false))
 
     }
 
     override fun onResume() {
+        val view = displayedView()
+        if (view != null && view is ReactorView) view.viewIsVisible = true
         super.onResume()
         navigationCore.fire(NavigationEvent.AppContextChanged(true))
     }
 
     override fun onDestroy() {
-        if (rootViewGroup.childCount > 0){
-            val view = rootViewGroup.getChildAt(0)
-            if (view is ReactorView) view.viewTearDown()
-        }
+        val view = displayedView()
+        if (view != null && view is ReactorView) view.viewTearDown()
         super.onDestroy()
         ReactorNavigation.navigationCommandReceived.remove(this)
     }
 
     private fun navigationCommandReceived(navigationCommand: NavigationCommand) {
-        updateWithNavState(navigationCore.currentState, navigationCommand)
+        if (navigationCommand.navStackChanged){
+            updateWithNavState(navigationCore.currentState, navigationCommand)
+        }else if (navigationCommand is NavigationCommand.PresentAlert){
+            runOnUiThread {
+                val alertBuilder = AlertDialog.Builder(this)
+                alertBuilder.setCancelable(false)
+                alertBuilder.setTitle(navigationCommand.title)
+                alertBuilder.setMessage(navigationCommand.message)
+                for ((index, button) in navigationCommand.buttons.iterator().withIndex()){
+                    if (index == 0){
+                        alertBuilder.setPositiveButton(button.title, button.action)
+                    }else if (index == 1){
+                        alertBuilder.setNegativeButton(button.title, button.action)
+                    }else{
+                        alertBuilder.setNeutralButton(button.title, button.action)
+                    }
+                }
+                alertBuilder.show()
+            }
+        }
+    }
+
+    private fun displayedView(): View? {
+        if (rootViewGroup.childCount > 0) {
+            return rootViewGroup.getChildAt(0)
+        } else {
+            return null
+        }
     }
 
     /**
@@ -104,10 +134,8 @@ abstract class ReactorActivity(
             Log.e("NAVIGATION", "In the middle of a transition. Dropping view transition.")
             return
         }
-        val view: View?
-        if (rootViewGroup.childCount > 0) {
-            view = rootViewGroup.getChildAt(0)
-        } else {
+        val view = displayedView()
+        if (view == null) {
             Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
             return
         }

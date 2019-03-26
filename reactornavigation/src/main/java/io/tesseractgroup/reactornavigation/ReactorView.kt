@@ -20,7 +20,7 @@ abstract class ReactorView(context: Context, private val layoutId: Int, open val
 
     private var layoutRequested = false
     private var viewLayedOut = false
-    private var viewIsVisible = false
+    internal var viewIsVisible = false
         set(value) {
             if (field != value) {
                 field = value

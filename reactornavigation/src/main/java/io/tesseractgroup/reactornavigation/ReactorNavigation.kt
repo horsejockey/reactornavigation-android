@@ -1,6 +1,7 @@
 package io.tesseractgroup.reactornavigation
 
 import android.content.Context
+import android.content.DialogInterface
 import io.tesseractgroup.messagerouter.MessageRouter
 import io.tesseractgroup.reactor.CommandProcessor
 import io.tesseractgroup.reactor.Core
@@ -12,23 +13,33 @@ import io.tesseractgroup.reactor.CoreUpdate
  */
 internal interface VisibleViewChanged
 
-sealed class NavigationCommand {
+data class AlertButton(
+    val title: String,
+    val action: ((DialogInterface, Int) -> Unit)? = null
+)
+
+sealed class NavigationCommand(val navStackChanged: Boolean) {
     // View Container Changes
-    data class TabIndexChanged(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(), VisibleViewChanged
+    data class TabIndexChanged(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(true), VisibleViewChanged
 
-    data class ModalPresented(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(), VisibleViewChanged
-    data class ModalDismissed(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(), VisibleViewChanged
-    object RootContainerChanged : NavigationCommand(), VisibleViewChanged
+    data class ModalPresented(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(true), VisibleViewChanged
+    data class ModalDismissed(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(true), VisibleViewChanged
+    object RootContainerChanged : NavigationCommand(true), VisibleViewChanged
     // View State Changes
-    object NavViewPushed : NavigationCommand(), VisibleViewChanged
+    object NavViewPushed : NavigationCommand(true), VisibleViewChanged
 
-    object NavViewPopped : NavigationCommand(), VisibleViewChanged
-    object NavViewReplaced : NavigationCommand(), VisibleViewChanged
+    object NavViewPopped : NavigationCommand(true), VisibleViewChanged
+    object NavViewReplaced : NavigationCommand(true), VisibleViewChanged
 
     // Change that didn't affect the visible View State
-    object HiddenUpdate : NavigationCommand()
+    object HiddenUpdate : NavigationCommand(true)
 
-    object AppContextChanged : NavigationCommand()
+    object AppContextChanged : NavigationCommand(false)
+    data class PresentAlert(
+        val title: String? = null,
+        val message: String? = null,
+        val buttons: List<AlertButton>
+    ): NavigationCommand(false)
 }
 
 abstract class NavigationStateProtocol {
@@ -65,7 +76,7 @@ object ReactorNavigation {
 
         val containerToUpdate = state.rootViewContainer.findSubstateWithTag(event.containerId)
         val oldVisibleViewContainer = state.findVisibleContainer()
-        val oldVisibleView = state.findVisibleView()
+//        val oldVisibleView = state.findVisibleView()
         var command: NavigationCommand = NavigationCommand.HiddenUpdate
         val updatingCurrentContainer = oldVisibleViewContainer == containerToUpdate
 
