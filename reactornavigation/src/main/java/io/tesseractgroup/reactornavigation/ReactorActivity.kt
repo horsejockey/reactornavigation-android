@@ -54,10 +54,10 @@ abstract class ReactorActivity(
     }
 
     override fun onResume() {
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewIsVisible = true
         super.onResume()
         navigationCore.fire(NavigationEvent.AppContextChanged(true))
+        val view = displayedView()
+        if (view != null && view is ReactorView) view.viewIsVisible = true
     }
 
     override fun onDestroy() {
