@@ -111,10 +111,12 @@ abstract class ReactorActivity(
                 showView(visibleViewState, visibleContainer.tag, visibleContainer.parentTag, command)
             }
             // Show up button for children views
-            if (visibleContainer != null && visibleContainer.viewStates.count() > 1) {
-                supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            } else {
+            val rootContainer = state.rootViewContainer
+            val rootTag = rootContainer.tag
+            if (visibleContainer?.tag == rootTag || (rootContainer is TabContainerState && visibleContainer?.parentTag == rootTag)){
                 supportActionBar?.setDisplayHomeAsUpEnabled(false)
+            }else{
+                supportActionBar?.setDisplayHomeAsUpEnabled(true)
             }
         }
     }
