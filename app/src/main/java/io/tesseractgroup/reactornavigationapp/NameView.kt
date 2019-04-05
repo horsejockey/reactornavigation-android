@@ -1,7 +1,6 @@
 package io.tesseractgroup.reactornavigationapp;
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.Context
 import android.support.v7.widget.Toolbar
 import android.text.Editable
@@ -45,22 +44,32 @@ class NameView(context: Context, val name: String, override val viewState: NameV
 
         editText_name.setText(viewState.editTextName)
 
-        button.setOnClickListener {
-//            App.navigationCore.fire(NavigationEvent.PushNavView(NAV_CONT, NameViewState(editText_name.text.toString())))
-            App.navigationCore.perform(NavigationCommand.PresentAlert(
-                "Hello",
-                "World!",
-                listOf(
-                    AlertButton(
-                        "Confirm",{ _, _ ->
-                        App.navigationCore.fire(NavigationEvent.PushNavView(NAV_CONT, NameViewState(editText_name.text.toString())))
-                    }
-                    ),
-                    AlertButton(
-                        "Cancel"
-                    )
-                )
-            ))
+        button_save.setOnClickListener {
+            App.navigationCore.fire(NavigationEvent.PushNavView(containerTag, NameViewState(editText_name.text.toString())))
+//            App.navigationCore.perform(NavigationCommand.PresentAlert(
+//                "Hello",
+//                "World!",
+//                listOf(
+//                    AlertButton(
+//                        "Confirm",{ _, _ ->
+//                        App.navigationCore.fire(NavigationEvent.PushNavView(NAV_CONT, NameViewState(editText_name.text.toString())))
+//                    }
+//                    ),
+//                    AlertButton(
+//                        "Cancel"
+//                    )
+//                )
+//            ))
+        }
+
+        button_pop.setOnClickListener {
+            App.navigationCore.fire(NavigationEvent.PopNavView(containerTag))
+        }
+
+        button_dismiss.setOnClickListener {
+            parentTag?.let {
+                App.navigationCore.fire(NavigationEvent.DismissModal(it))
+            }
         }
 
         setupToolbar(toolbar)

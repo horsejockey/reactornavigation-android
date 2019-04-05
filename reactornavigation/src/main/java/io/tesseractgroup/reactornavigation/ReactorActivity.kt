@@ -109,14 +109,15 @@ abstract class ReactorActivity(
             // Get visible View
             if (visibleViewState != null && visibleContainer != null) {
                 showView(visibleViewState, visibleContainer.tag, visibleContainer.parentTag, command)
-            }
-            // Show up button for children views
-            val rootContainer = state.rootViewContainer
-            val rootTag = rootContainer.tag
-            if (visibleContainer?.tag == rootTag || (rootContainer is TabContainerState && visibleContainer?.parentTag == rootTag)){
-                supportActionBar?.setDisplayHomeAsUpEnabled(false)
-            }else{
-                supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+                val rootContainer = state.rootViewContainer
+                val rootTag = rootContainer.tag
+                if (visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)){
+                    val isEnabled = visibleContainer.viewStates.count() > 1
+                    supportActionBar?.setDisplayHomeAsUpEnabled(isEnabled)
+                }else{
+                    supportActionBar?.setDisplayHomeAsUpEnabled(true)
+                }
             }
         }
     }

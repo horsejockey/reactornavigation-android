@@ -24,11 +24,29 @@
         android:ems="10" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/button_save"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="170dp"
-        android:text="Button" />
+        android:text="Save" />
+
+    <Button
+        android:id="@+id/button_pop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="262dp"
+        android:layout_centerHorizontal="true"
+        android:text="Pop" />
+
+    <Button
+        android:id="@+id/button_dismiss"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="367dp"
+        android:layout_centerHorizontal="true"
+        android:text="Dismiss" />
 </RelativeLayout>
