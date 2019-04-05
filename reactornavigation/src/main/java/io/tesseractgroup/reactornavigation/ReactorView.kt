@@ -18,6 +18,10 @@ fun View.className(): String {
 
 abstract class ReactorView(context: Context, private val layoutId: Int, open val viewState: ReactorViewState) : FrameLayout(context, null, 0), ViewTreeObserver.OnGlobalLayoutListener {
 
+    lateinit var containerTag: ViewContainerTag
+        internal set
+    var parentTag: ViewContainerTag? = null
+        internal set
     private var layoutRequested = false
     private var viewLayedOut = false
     internal var viewIsVisible = false
@@ -35,6 +39,7 @@ abstract class ReactorView(context: Context, private val layoutId: Int, open val
     private fun inflateLayout() {
         LayoutInflater.from(context).inflate(layoutId, this)
         val toolbar = (context as ReactorActivity).toolbar
+        toolbar.menu.clear()
         viewSetup(toolbar)
         this.rootView.requestLayout()
     }

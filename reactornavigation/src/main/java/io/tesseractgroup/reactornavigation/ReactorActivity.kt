@@ -50,7 +50,6 @@ abstract class ReactorActivity(
         if (view != null && view is ReactorView) view.viewIsVisible = false
         super.onPause()
         navigationCore.fire(NavigationEvent.AppContextChanged(false))
-
     }
 
     override fun onResume() {
@@ -108,8 +107,8 @@ abstract class ReactorActivity(
             val visibleViewState = state.findVisibleView()
 
             // Get visible View
-            if (visibleViewState != null) {
-                showView(visibleViewState, command)
+            if (visibleViewState != null && visibleContainer != null) {
+                showView(visibleViewState, visibleContainer.tag, visibleContainer.parentTag, command)
             }
             // Show up button for children views
             if (visibleContainer != null && visibleContainer.viewStates.count() > 1) {
@@ -125,7 +124,7 @@ abstract class ReactorActivity(
      */
     private var transitioningMainView = false
 
-    private fun showView(reactorViewState: ReactorViewState, @Suppress("UNUSED_PARAMETER") command: NavigationCommand) {
+    private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, @Suppress("UNUSED_PARAMETER") command: NavigationCommand) {
         if (activityCreated == false) {
             Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
             return
@@ -144,7 +143,6 @@ abstract class ReactorActivity(
         if (view is ReactorView && view.viewState != reactorViewState || view !is ReactorView) {
             toolbar.setOnMenuItemClickListener(null)
             toolbar.title = ""
-            toolbar.menu.clear()
             if (view is ReactorView) {
                 Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.viewState}")
             } else {
@@ -154,10 +152,11 @@ abstract class ReactorActivity(
             hideSoftKeyBoard()
             val viewToRemove = view
             val viewToShow = getViewForState(reactorViewState)
+            viewToShow.containerTag = containerTag
+            viewToShow.parentTag = parentTag
 
             rootViewGroup.removeView(viewToRemove)
             rootViewGroup.addView(viewToShow)
-
             if (viewToRemove is ReactorView) {
                 viewToRemove.viewTearDown()
             }
