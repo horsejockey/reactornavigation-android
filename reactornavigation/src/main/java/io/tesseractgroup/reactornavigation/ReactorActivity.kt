@@ -46,22 +46,16 @@ abstract class ReactorActivity(
     }
 
     override fun onPause() {
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewIsVisible = false
         super.onPause()
-        navigationCore.fire(NavigationEvent.AppContextChanged(false))
+//        navigationCore.fire(NavigationEvent.AppContextChanged(false))
     }
 
     override fun onResume() {
         super.onResume()
-        navigationCore.fire(NavigationEvent.AppContextChanged(true))
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewIsVisible = true
+//        navigationCore.fire(NavigationEvent.AppContextChanged(true))
     }
 
     override fun onDestroy() {
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewTearDown()
         super.onDestroy()
         ReactorNavigation.navigationCommandReceived.remove(this)
     }
@@ -89,12 +83,10 @@ abstract class ReactorActivity(
         }
     }
 
-    private fun displayedView(): View? {
-        if (rootViewGroup.childCount > 0) {
-            return rootViewGroup.getChildAt(0)
-        } else {
-            return null
-        }
+    private fun displayedFragment(): ReactorFragment? {
+        val fragment = supportFragmentManager.fragments.firstOrNull()
+        return if (fragment is ReactorFragment) fragment
+        else null
     }
 
     /**
@@ -136,17 +128,17 @@ abstract class ReactorActivity(
             Log.e("NAVIGATION", "In the middle of a transition. Dropping view transition.")
             return
         }
-        val view = displayedView()
-        if (view == null) {
-            Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
-            return
-        }
+        val view = displayedFragment()?.reactorView
+//        if (view == null) {
+//            Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
+//            return
+//        }
 
         transitioningMainView = true
-        if (view is ReactorView && view.viewState != reactorViewState || view !is ReactorView) {
+        if (view?.viewState != reactorViewState) {
             toolbar.setOnMenuItemClickListener(null)
             toolbar.title = ""
-            if (view is ReactorView) {
+            if (view != null) {
                 Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.viewState}")
             } else {
                 Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
@@ -157,9 +149,13 @@ abstract class ReactorActivity(
             val viewToShow = getViewForState(reactorViewState)
             viewToShow.containerTag = containerTag
             viewToShow.parentTag = parentTag
+            val fragment = ReactorFragment.newInstance(viewToShow)
+            val transaction = supportFragmentManager.beginTransaction()
+            transaction.replace(reactorContainerId, fragment)
+            transaction.commit()
 
-            rootViewGroup.removeView(viewToRemove)
-            rootViewGroup.addView(viewToShow)
+//            rootViewGroup.removeView(viewToRemove)
+//            rootViewGroup.addView(viewToShow)
             if (viewToRemove is ReactorView) {
                 viewToRemove.viewTearDown()
             }

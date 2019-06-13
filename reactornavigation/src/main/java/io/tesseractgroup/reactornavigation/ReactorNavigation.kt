@@ -3,9 +3,9 @@ package io.tesseractgroup.reactornavigation
 import android.content.Context
 import android.content.DialogInterface
 import io.tesseractgroup.messagerouter.MessageRouter
+import io.tesseractgroup.purestatemachine.StateUpdate
 import io.tesseractgroup.reactor.CommandProcessor
 import io.tesseractgroup.reactor.Core
-import io.tesseractgroup.reactor.CoreUpdate
 
 /**
  * PrototypeBluetoothLibrary
@@ -72,7 +72,7 @@ object ReactorNavigation {
         return Core(state, processors, ::eventHandler)
     }
 
-    private fun eventHandler(state: NavigationStateProtocol, event: NavigationEvent): CoreUpdate<NavigationStateProtocol, NavigationCommand> {
+    private fun eventHandler(state: NavigationStateProtocol, event: NavigationEvent): StateUpdate<NavigationStateProtocol, NavigationCommand> {
 
         val containerToUpdate = state.rootViewContainer.findSubstateWithTag(event.containerId)
         val oldVisibleViewContainer = state.findVisibleContainer()
@@ -160,7 +160,7 @@ object ReactorNavigation {
             }
         }
 
-        return CoreUpdate.StateAndCommands(state, listOf(command))
+        return StateUpdate.StateAndCommands(state, listOf(command))
     }
 
     val navigationCommandReceived = MessageRouter<NavigationCommand>()
