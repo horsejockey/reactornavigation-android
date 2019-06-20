@@ -8,7 +8,6 @@ import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import io.tesseractgroup.reactor.Core
@@ -119,7 +118,7 @@ abstract class ReactorActivity(
      */
     private var transitioningMainView = false
 
-    private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, @Suppress("UNUSED_PARAMETER") command: NavigationCommand) {
+    private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, command: NavigationCommand) {
         if (activityCreated == false) {
             Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
             return
@@ -151,6 +150,22 @@ abstract class ReactorActivity(
             viewToShow.parentTag = parentTag
             val fragment = ReactorFragment.newInstance(viewToShow)
             val transaction = supportFragmentManager.beginTransaction()
+
+            when(command){
+                is NavigationCommand.TabIndexChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                is NavigationCommand.ModalPresented -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                is NavigationCommand.ModalDismissed -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                NavigationCommand.RootContainerChanged -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                NavigationCommand.NavViewPushed -> transaction.setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_left)
+                NavigationCommand.NavViewPopped -> transaction.setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_left)
+                NavigationCommand.NavViewReplaced -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                NavigationCommand.HiddenUpdate -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                NavigationCommand.AppContextChanged -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                is NavigationCommand.PresentAlert -> {
+                    // No animation
+                }
+            }
+
             transaction.replace(reactorContainerId, fragment)
             transaction.commit()
 
