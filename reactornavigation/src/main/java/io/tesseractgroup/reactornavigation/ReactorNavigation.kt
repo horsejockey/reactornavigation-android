@@ -244,7 +244,7 @@ class NavContainerState(override var tag: ViewContainerTag, viewStates: List<Rea
     init {
         this.viewStates = viewStates
         this.modal = modal
-        modal?.parentTag = parentTag
+        modal?.parentTag = tag
     }
 }
 
