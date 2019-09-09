@@ -236,7 +236,7 @@ class TabContainerState(override var tag: ViewContainerTag, val tabContainers: L
     }
 }
 
-class NavContainerState(override var tag: ViewContainerTag, viewStates: List<ReactorViewState>, override var modal: NavContainerState? = null) : ViewContainerState() {
+class NavContainerState(override var tag: ViewContainerTag, viewStates: List<ReactorViewState>, override var modal: NavContainerState? = null, val cancellable: Boolean = true) : ViewContainerState() {
 
     var viewStates: List<ReactorViewState>
         internal set

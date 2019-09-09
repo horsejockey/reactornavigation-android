@@ -1,11 +1,11 @@
 package io.tesseractgroup.reactornavigation
 
 import android.content.Context
+import android.os.Bundle
+import android.support.v4.app.Fragment
 import android.support.v7.widget.Toolbar
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewTreeObserver
+import android.view.*
 import android.widget.FrameLayout
 
 /**
@@ -14,6 +14,35 @@ import android.widget.FrameLayout
 
 fun View.className(): String {
     return "${this::class}".split(".").last()
+}
+
+class ReactorFragment: Fragment(){
+
+    companion object {
+
+        fun newInstance(reactorView: ReactorView): ReactorFragment {
+            val reactorFragment = ReactorFragment()
+            reactorFragment.reactorView = reactorView
+            return reactorFragment
+        }
+    }
+
+    lateinit var reactorView: ReactorView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        return inflater.inflate(R.layout.fragment_reactor, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        if (view is ViewGroup && view.childCount == 0) {
+            view.addView(reactorView)
+        }
+    }
 }
 
 abstract class ReactorView(context: Context, private val layoutId: Int, open val viewState: ReactorViewState) : FrameLayout(context, null, 0), ViewTreeObserver.OnGlobalLayoutListener {
@@ -78,6 +107,14 @@ abstract class ReactorView(context: Context, private val layoutId: Int, open val
             viewLayedOut = true
             viewIsVisible = true
         }
+    }
+
+    open fun onBackPressed(): Boolean {
+        return false
+    }
+
+    open fun homeUpIsEnabled(): Boolean? {
+        return null
     }
 
     open fun viewDidAppear() {

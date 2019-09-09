@@ -8,8 +8,6 @@ import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import io.tesseractgroup.reactor.Core
 
@@ -26,13 +24,11 @@ abstract class ReactorActivity(
     lateinit var toolbar: Toolbar
 
     private var activityCreated = false
-    private lateinit var rootViewGroup: ViewGroup
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(layoutId)
         super.onCreate(savedInstanceState)
 
-        rootViewGroup = findViewById(reactorContainerId)
         toolbar = findViewById(toolbarId)
 
         setSupportActionBar(toolbar)
@@ -46,22 +42,16 @@ abstract class ReactorActivity(
     }
 
     override fun onPause() {
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewIsVisible = false
         super.onPause()
-        navigationCore.fire(NavigationEvent.AppContextChanged(false))
+//        navigationCore.fire(NavigationEvent.AppContextChanged(false))
     }
 
     override fun onResume() {
         super.onResume()
-        navigationCore.fire(NavigationEvent.AppContextChanged(true))
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewIsVisible = true
+//        navigationCore.fire(NavigationEvent.AppContextChanged(true))
     }
 
     override fun onDestroy() {
-        val view = displayedView()
-        if (view != null && view is ReactorView) view.viewTearDown()
         super.onDestroy()
         ReactorNavigation.navigationCommandReceived.remove(this)
     }
@@ -89,12 +79,10 @@ abstract class ReactorActivity(
         }
     }
 
-    private fun displayedView(): View? {
-        if (rootViewGroup.childCount > 0) {
-            return rootViewGroup.getChildAt(0)
-        } else {
-            return null
-        }
+    private fun displayedFragment(): ReactorFragment? {
+        val fragment = supportFragmentManager.fragments.firstOrNull()
+        return if (fragment is ReactorFragment) fragment
+        else null
     }
 
     /**
@@ -112,7 +100,10 @@ abstract class ReactorActivity(
 
                 val rootContainer = state.rootViewContainer
                 val rootTag = rootContainer.tag
-                if (visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)){
+
+                val isARootNavContainer = visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)
+
+                if (isARootNavContainer || !visibleContainer.cancellable){
                     val isEnabled = visibleContainer.viewStates.count() > 1
                     supportActionBar?.setDisplayHomeAsUpEnabled(isEnabled)
                 }else{
@@ -127,7 +118,7 @@ abstract class ReactorActivity(
      */
     private var transitioningMainView = false
 
-    private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, @Suppress("UNUSED_PARAMETER") command: NavigationCommand) {
+    private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, command: NavigationCommand) {
         if (activityCreated == false) {
             Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
             return
@@ -136,17 +127,17 @@ abstract class ReactorActivity(
             Log.e("NAVIGATION", "In the middle of a transition. Dropping view transition.")
             return
         }
-        val view = displayedView()
-        if (view == null) {
-            Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
-            return
-        }
+        val view = displayedFragment()?.reactorView
+//        if (view == null) {
+//            Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
+//            return
+//        }
 
         transitioningMainView = true
-        if (view is ReactorView && view.viewState != reactorViewState || view !is ReactorView) {
+        if (view?.viewState != reactorViewState) {
             toolbar.setOnMenuItemClickListener(null)
             toolbar.title = ""
-            if (view is ReactorView) {
+            if (view != null) {
                 Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.viewState}")
             } else {
                 Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
@@ -157,9 +148,26 @@ abstract class ReactorActivity(
             val viewToShow = getViewForState(reactorViewState)
             viewToShow.containerTag = containerTag
             viewToShow.parentTag = parentTag
+            val fragment = ReactorFragment.newInstance(viewToShow)
+            val transaction = supportFragmentManager.beginTransaction()
 
-            rootViewGroup.removeView(viewToRemove)
-            rootViewGroup.addView(viewToShow)
+            when(command){
+                is NavigationCommand.TabIndexChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                is NavigationCommand.ModalPresented -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                is NavigationCommand.ModalDismissed -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                NavigationCommand.RootContainerChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                NavigationCommand.NavViewPushed -> transaction.setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_left)
+                NavigationCommand.NavViewPopped -> transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_left, R.anim.enter_from_left, R.anim.exit_to_right)
+                NavigationCommand.NavViewReplaced -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                NavigationCommand.HiddenUpdate,
+                NavigationCommand.AppContextChanged,
+                is NavigationCommand.PresentAlert -> {
+                    // No animation
+                }
+            }
+
+            transaction.replace(reactorContainerId, fragment)
+            transaction.commit()
             if (viewToRemove is ReactorView) {
                 viewToRemove.viewTearDown()
             }
@@ -192,13 +200,22 @@ abstract class ReactorActivity(
     }
 
     override fun onBackPressed() {
+
+        val reactorView = displayedFragment()?.reactorView
+        if (reactorView?.onBackPressed() == true){
+            return
+        }
+
         val state = navigationCore.currentState
         val selectedContainer = state.rootViewContainer.findVisibleContainer()
         val parentContainerTag = selectedContainer?.parentTag
+
+        val isRootContainer = parentContainerTag == null || (state.rootViewContainer.tag == parentContainerTag && state.rootViewContainer is TabContainerState)
+
         if (selectedContainer != null && selectedContainer.viewStates.count() > 1) {
             navigationCore.fire(NavigationEvent.PopNavView(selectedContainer.tag))
-        } else if (parentContainerTag != null && (state.rootViewContainer.tag != parentContainerTag || state.rootViewContainer is NavContainerState)) {
-            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag))
+        } else if (!isRootContainer && selectedContainer?.cancellable == true) {
+            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag!!))
         } else {
             finish()
         }
