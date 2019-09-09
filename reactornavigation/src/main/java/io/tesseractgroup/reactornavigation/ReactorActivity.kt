@@ -8,7 +8,6 @@ import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import io.tesseractgroup.reactor.Core
 
@@ -25,13 +24,11 @@ abstract class ReactorActivity(
     lateinit var toolbar: Toolbar
 
     private var activityCreated = false
-    private lateinit var rootViewGroup: ViewGroup
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(layoutId)
         super.onCreate(savedInstanceState)
 
-        rootViewGroup = findViewById(reactorContainerId)
         toolbar = findViewById(toolbarId)
 
         setSupportActionBar(toolbar)
@@ -103,7 +100,10 @@ abstract class ReactorActivity(
 
                 val rootContainer = state.rootViewContainer
                 val rootTag = rootContainer.tag
-                if (visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)){
+
+                val isARootNavContainer = visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)
+
+                if (isARootNavContainer || !visibleContainer.cancellable){
                     val isEnabled = visibleContainer.viewStates.count() > 1
                     supportActionBar?.setDisplayHomeAsUpEnabled(isEnabled)
                 }else{
@@ -153,14 +153,14 @@ abstract class ReactorActivity(
 
             when(command){
                 is NavigationCommand.TabIndexChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
-                is NavigationCommand.ModalPresented -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                is NavigationCommand.ModalDismissed -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                NavigationCommand.RootContainerChanged -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                is NavigationCommand.ModalPresented -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                is NavigationCommand.ModalDismissed -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                NavigationCommand.RootContainerChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
                 NavigationCommand.NavViewPushed -> transaction.setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_left)
-                NavigationCommand.NavViewPopped -> transaction.setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_left)
-                NavigationCommand.NavViewReplaced -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                NavigationCommand.HiddenUpdate -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                NavigationCommand.AppContextChanged -> transaction.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                NavigationCommand.NavViewPopped -> transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_left, R.anim.enter_from_left, R.anim.exit_to_right)
+                NavigationCommand.NavViewReplaced -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                NavigationCommand.HiddenUpdate,
+                NavigationCommand.AppContextChanged,
                 is NavigationCommand.PresentAlert -> {
                     // No animation
                 }
@@ -168,9 +168,6 @@ abstract class ReactorActivity(
 
             transaction.replace(reactorContainerId, fragment)
             transaction.commit()
-
-//            rootViewGroup.removeView(viewToRemove)
-//            rootViewGroup.addView(viewToShow)
             if (viewToRemove is ReactorView) {
                 viewToRemove.viewTearDown()
             }
@@ -203,13 +200,22 @@ abstract class ReactorActivity(
     }
 
     override fun onBackPressed() {
+
+        val reactorView = displayedFragment()?.reactorView
+        if (reactorView?.onBackPressed() == true){
+            return
+        }
+
         val state = navigationCore.currentState
         val selectedContainer = state.rootViewContainer.findVisibleContainer()
         val parentContainerTag = selectedContainer?.parentTag
+
+        val isRootContainer = parentContainerTag == null || (state.rootViewContainer.tag == parentContainerTag && state.rootViewContainer is TabContainerState)
+
         if (selectedContainer != null && selectedContainer.viewStates.count() > 1) {
             navigationCore.fire(NavigationEvent.PopNavView(selectedContainer.tag))
-        } else if (parentContainerTag != null && (state.rootViewContainer.tag != parentContainerTag || state.rootViewContainer is NavContainerState)) {
-            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag))
+        } else if (!isRootContainer && selectedContainer?.cancellable == true) {
+            navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag!!))
         } else {
             finish()
         }

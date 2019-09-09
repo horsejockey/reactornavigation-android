@@ -109,6 +109,14 @@ abstract class ReactorView(context: Context, private val layoutId: Int, open val
         }
     }
 
+    open fun onBackPressed(): Boolean {
+        return false
+    }
+
+    open fun homeUpIsEnabled(): Boolean? {
+        return null
+    }
+
     open fun viewDidAppear() {
         Log.i("NAVIGATION_${this.className()})", "View did appear")
     }
