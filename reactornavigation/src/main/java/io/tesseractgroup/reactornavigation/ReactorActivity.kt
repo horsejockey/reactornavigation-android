@@ -43,12 +43,12 @@ abstract class ReactorActivity(
 
     override fun onPause() {
         super.onPause()
-//        navigationCore.fire(NavigationEvent.AppContextChanged(false))
+        navigationCore.fire(NavigationEvent.AppContextChanged(false))
     }
 
     override fun onResume() {
         super.onResume()
-//        navigationCore.fire(NavigationEvent.AppContextChanged(true))
+        navigationCore.fire(NavigationEvent.AppContextChanged(true))
     }
 
     override fun onDestroy() {
