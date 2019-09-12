@@ -5,11 +5,16 @@ import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
+import android.transition.Fade
+import android.transition.Slide
+import android.transition.Transition
 import android.util.Log
+import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.InputMethodManager
 import io.tesseractgroup.reactor.Core
+import kotlin.concurrent.fixedRateTimer
 
 /**
  * PrototypeBluetoothLibrary
@@ -28,6 +33,11 @@ abstract class ReactorActivity(
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(layoutId)
         super.onCreate(savedInstanceState)
+        val existingFragment = displayedFragment()
+        val visibleViewState = navigationCore.currentState.findVisibleView()
+        if (existingFragment != null && visibleViewState != null){
+            existingFragment.reactorView = getViewForState(visibleViewState)
+        }
 
         toolbar = findViewById(toolbarId)
 
@@ -149,23 +159,44 @@ abstract class ReactorActivity(
             viewToShow.containerTag = containerTag
             viewToShow.parentTag = parentTag
             val fragment = ReactorFragment.newInstance(viewToShow)
-            val transaction = supportFragmentManager.beginTransaction()
+            val currentFragment = displayedFragment()
 
             when(command){
-                is NavigationCommand.TabIndexChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
-                is NavigationCommand.ModalPresented -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
-                is NavigationCommand.ModalDismissed -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
-                NavigationCommand.RootContainerChanged -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
-                NavigationCommand.NavViewPushed -> transaction.setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_left)
-                NavigationCommand.NavViewPopped -> transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_left, R.anim.enter_from_left, R.anim.exit_to_right)
-                NavigationCommand.NavViewReplaced -> transaction.setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                is NavigationCommand.TabIndexChanged -> {
+                    fragment.enterTransition = ReactorTransitions.enterFade
+                    currentFragment?.exitTransition = ReactorTransitions.exitFade
+                }
+                is NavigationCommand.ModalPresented -> {
+                    fragment.enterTransition = ReactorTransitions.bottomSlide
+                    currentFragment?.exitTransition = ReactorTransitions.exitFade
+                }
+                is NavigationCommand.ModalDismissed -> {
+                    fragment.enterTransition = ReactorTransitions.enterFade
+                    currentFragment?.exitTransition = ReactorTransitions.bottomSlide
+                }
+                NavigationCommand.RootContainerChanged -> {
+                    fragment.enterTransition = ReactorTransitions.enterFade
+                    currentFragment?.exitTransition = ReactorTransitions.exitFade
+                }
+                NavigationCommand.NavViewPushed -> {
+                    fragment.enterTransition = ReactorTransitions.rightSlide
+                    currentFragment?.exitTransition = ReactorTransitions.leftSlide
+                }
+                NavigationCommand.NavViewPopped -> {
+                    fragment.enterTransition = ReactorTransitions.leftSlide
+                    currentFragment?.exitTransition = ReactorTransitions.rightSlide
+                }
+                NavigationCommand.NavViewReplaced -> {
+                    fragment.enterTransition = ReactorTransitions.enterFade
+                    currentFragment?.exitTransition = ReactorTransitions.exitFade
+                }
                 NavigationCommand.HiddenUpdate,
                 NavigationCommand.AppContextChanged,
                 is NavigationCommand.PresentAlert -> {
                     // No animation
                 }
             }
-
+            val transaction = supportFragmentManager.beginTransaction()
             transaction.replace(reactorContainerId, fragment)
             transaction.commit()
             if (viewToRemove is ReactorView) {
@@ -222,3 +253,45 @@ abstract class ReactorActivity(
     }
 }
 
+private object ReactorTransitions {
+    val FADE_DEFAULT_TIME = 250L
+    val FADE_OVERLAP = 50L
+
+    val SLIDE_DEFAULT_TIME = 500L
+
+    val exitFade: Transition
+        get() {
+            val exitFade = Fade()
+            exitFade.duration = FADE_DEFAULT_TIME
+            return exitFade
+        }
+
+    val enterFade: Transition
+        get() {
+            val exitFade = Fade()
+            exitFade.startDelay = FADE_DEFAULT_TIME - FADE_OVERLAP
+            exitFade.duration = FADE_DEFAULT_TIME
+            return exitFade
+        }
+
+    val rightSlide: Transition
+        get() {
+            val enterSlide = Slide(Gravity.RIGHT)
+            enterSlide.duration = SLIDE_DEFAULT_TIME
+            return enterSlide
+        }
+
+    val leftSlide: Transition
+        get() {
+            val enterSlide = Slide(Gravity.LEFT)
+            enterSlide.duration = SLIDE_DEFAULT_TIME
+            return enterSlide
+        }
+
+    val bottomSlide: Transition
+        get() {
+            val enterSlide = Slide(Gravity.BOTTOM)
+            enterSlide.duration = SLIDE_DEFAULT_TIME
+            return enterSlide
+        }
+}

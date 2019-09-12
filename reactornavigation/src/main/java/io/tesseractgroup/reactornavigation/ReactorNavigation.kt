@@ -14,8 +14,8 @@ import io.tesseractgroup.reactor.Core
 internal interface VisibleViewChanged
 
 data class AlertButton(
-    val title: String,
-    val action: ((DialogInterface, Int) -> Unit)? = null
+        val title: String,
+        val action: ((DialogInterface, Int) -> Unit)? = null
 )
 
 sealed class NavigationCommand(val navStackChanged: Boolean) {
@@ -36,10 +36,10 @@ sealed class NavigationCommand(val navStackChanged: Boolean) {
 
     object AppContextChanged : NavigationCommand(false)
     data class PresentAlert(
-        val title: String? = null,
-        val message: String? = null,
-        val buttons: List<AlertButton>
-    ): NavigationCommand(false)
+            val title: String? = null,
+            val message: String? = null,
+            val buttons: List<AlertButton>
+    ) : NavigationCommand(false)
 }
 
 abstract class NavigationStateProtocol {
@@ -65,18 +65,35 @@ abstract class NavigationStateProtocol {
 object ReactorNavigation {
 
     fun createNavigationCore(
-        state: NavigationStateProtocol,
-        commandProcessors: List<CommandProcessor<NavigationStateProtocol, NavigationEvent, NavigationCommand>> = listOf())
-        : Core<NavigationStateProtocol, NavigationEvent, NavigationCommand> {
+            state: NavigationStateProtocol,
+            commandProcessors: List<CommandProcessor<NavigationStateProtocol, NavigationEvent, NavigationCommand>> = listOf())
+            : Core<NavigationStateProtocol, NavigationEvent, NavigationCommand> {
         val processors = commandProcessors + ::commandProcessor
         return Core(state, processors, ::eventHandler)
     }
 
     private fun eventHandler(state: NavigationStateProtocol, event: NavigationEvent): StateUpdate<NavigationStateProtocol, NavigationCommand> {
 
-        val containerToUpdate = state.rootViewContainer.findSubstateWithTag(event.containerId)
+        val noContainer = "NO_CONTAINER"
         val oldVisibleViewContainer = state.findVisibleContainer()
-//        val oldVisibleView = state.findVisibleView()
+
+        val containerId = when (event) {
+            is NavigationEvent.AppContextChanged -> noContainer
+            is NavigationEvent.ChangeContainerIndex -> event.containerId
+            is NavigationEvent.PresentModally -> event.containerId ?: oldVisibleViewContainer?.tag
+            is NavigationEvent.DismissModal -> event.containerId
+                    ?: oldVisibleViewContainer?.parentTag
+            is NavigationEvent.PushNavView -> event.containerId ?: oldVisibleViewContainer?.tag
+            is NavigationEvent.ReplaceNavView -> event.containerId ?: oldVisibleViewContainer?.tag
+            is NavigationEvent.ReplaceNavViewStack -> event.containerId
+            is NavigationEvent.PopNavView -> event.containerId ?: oldVisibleViewContainer?.tag
+            is NavigationEvent.UnwindToView -> event.containerId
+            is NavigationEvent.ReplaceRootContainer -> noContainer
+        }
+
+        if (containerId == null) return StateUpdate.NoUpdate()
+
+        val containerToUpdate = state.rootViewContainer.findSubstateWithTag(containerId)
         var command: NavigationCommand = NavigationCommand.HiddenUpdate
         val updatingCurrentContainer = oldVisibleViewContainer == containerToUpdate
 
@@ -91,7 +108,7 @@ object ReactorNavigation {
             }
             is NavigationEvent.PresentModally -> {
                 containerToUpdate?.modal = event.viewContainer
-                containerToUpdate?.modal?.parentTag = event.containerId
+                containerToUpdate?.modal?.parentTag = containerId
                 if (state.findVisibleContainer() != oldVisibleViewContainer && oldVisibleViewContainer != null) {
                     command = NavigationCommand.ModalPresented(oldVisibleViewContainer)
                 }
@@ -248,40 +265,47 @@ class NavContainerState(override var tag: ViewContainerTag, viewStates: List<Rea
     }
 }
 
-sealed class NavigationEvent(val containerId: ViewContainerTag) {
+sealed class NavigationEvent(open val containerId: ViewContainerTag?) {
 
-    class AppContextChanged(val inForeground: Boolean) : NavigationEvent("rn_none")
+    class AppContextChanged(val inForeground: Boolean) : NavigationEvent(null)
 
     class ChangeContainerIndex(
-        containerId: ViewContainerTag,
-        val selectedIndex: Int) : NavigationEvent(containerId)
+            val selectedIndex: Int,
+            override val containerId: ViewContainerTag
+    ) : NavigationEvent(containerId)
 
     class PresentModally(
-        overContainerTag: ViewContainerTag,
-        val viewContainer: NavContainerState
+            val viewContainer: NavContainerState,
+            overContainerTag: ViewContainerTag? = null
     ) : NavigationEvent(overContainerTag)
 
-    class DismissModal(forContainer: ViewContainerTag) : NavigationEvent(forContainer)
+    class DismissModal(forContainer: ViewContainerTag? = null) : NavigationEvent(forContainer)
 
     class PushNavView(
-        containerId: ViewContainerTag,
-        val view: ReactorViewState) : NavigationEvent(containerId)
+            val view: ReactorViewState,
+            containerId: ViewContainerTag? = null
+    ) : NavigationEvent(containerId)
 
     class ReplaceNavView(
-        containerId: ViewContainerTag,
-        val view: ReactorViewState) : NavigationEvent(containerId)
+            val view: ReactorViewState,
+            containerId: ViewContainerTag? = null
+    ) : NavigationEvent(containerId)
 
     class ReplaceNavViewStack(
-        containerId: ViewContainerTag,
-        val views: List<ReactorViewState>) : NavigationEvent(containerId)
+            val views: List<ReactorViewState>,
+            override val containerId: ViewContainerTag
+    ) : NavigationEvent(containerId)
 
     class PopNavView(
-        containerId: ViewContainerTag) : NavigationEvent(containerId)
+            containerId: ViewContainerTag? = null
+    ) : NavigationEvent(containerId)
 
     class UnwindToView(
-        containerId: ViewContainerTag,
-        val view: ReactorViewState?) : NavigationEvent(containerId)
+            val view: ReactorViewState?,
+            override val containerId: ViewContainerTag
+    ) : NavigationEvent(containerId)
 
     class ReplaceRootContainer(
-        val container: ViewContainerState) : NavigationEvent("rn_none")
+            val container: ViewContainerState
+    ) : NavigationEvent(null)
 }
