@@ -47,7 +47,7 @@ abstract class ReactorActivity(
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         activityCreated = true
-        updateWithNavState(navigationCore.currentState, NavigationCommand.RootContainerChanged)
+        updateWithNavState(navigationCore.currentState, NavigationCommand.RootContainerChanged(null))
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -174,7 +174,7 @@ abstract class ReactorActivity(
                     fragment.enterTransition = ReactorTransitions.enterFade
                     currentFragment?.exitTransition = ReactorTransitions.bottomSlide
                 }
-                NavigationCommand.RootContainerChanged -> {
+                is NavigationCommand.RootContainerChanged -> {
                     fragment.enterTransition = ReactorTransitions.enterFade
                     currentFragment?.exitTransition = ReactorTransitions.exitFade
                 }
