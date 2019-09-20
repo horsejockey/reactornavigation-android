@@ -24,7 +24,7 @@ sealed class NavigationCommand(val navStackChanged: Boolean) {
 
     data class ModalPresented(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(true), VisibleViewChanged
     data class ModalDismissed(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(true), VisibleViewChanged
-    object RootContainerChanged : NavigationCommand(true), VisibleViewChanged
+    data class RootContainerChanged(val lastVisibleViewContainer: NavContainerState) : NavigationCommand(true), VisibleViewChanged
     // View State Changes
     object NavViewPushed : NavigationCommand(true), VisibleViewChanged
 
@@ -173,7 +173,9 @@ object ReactorNavigation {
             }
             is NavigationEvent.ReplaceRootContainer -> {
                 state.rootViewContainer = event.container
-                command = NavigationCommand.RootContainerChanged
+                if (oldVisibleViewContainer != null){
+                    command = NavigationCommand.RootContainerChanged(oldVisibleViewContainer)
+                }
             }
         }
 
