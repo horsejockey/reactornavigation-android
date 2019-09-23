@@ -12,8 +12,12 @@ import android.view.MenuItem
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.graphics.drawable.AnimatedStateListDrawableCompat
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
+import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import io.tesseractgroup.reactor.Core
+import kotlinx.coroutines.newSingleThreadContext
 
 /**
  * PrototypeBluetoothLibrary
@@ -30,10 +34,14 @@ abstract class ReactorActivity(
     // Navigation Icon State Management
     enum class NavigationIconState {
         NONE, CLOSE, BACK;
+        fun drawable(context: Context): AnimatedVectorDrawableCompat? {
+            return when(this){
+                NONE -> null
+                CLOSE -> AnimatedVectorDrawableCompat.create(context, R.drawable.pathmorph_back_to_close)
+                BACK -> AnimatedVectorDrawableCompat.create(context, R.drawable.pathmorph_close_to_back)
+            }
+        }
     }
-
-    private val closeNavigationItemState = intArrayOf(android.R.attr.state_checked)
-    private val backNavigationItemState = intArrayOf(android.R.attr.state_checked * -1)
     private var navigationIconSate = NavigationIconState.NONE
         set(value) {
             if (field != value) {
@@ -145,22 +153,9 @@ abstract class ReactorActivity(
 
     // Handle navigation icon changes
     private fun navigationIconChanged(oldValue: NavigationIconState, newValue: NavigationIconState) {
-        when {
-            oldValue == NavigationIconState.NONE -> {
-                toolbar.setNavigationIcon(R.drawable.closeback)
-            }
-            newValue == NavigationIconState.NONE -> {
-                toolbar.navigationIcon = null
-            }
-        }
-        when(newValue) {
-            NavigationIconState.BACK -> {
-                toolbar.navigationIcon?.setState(backNavigationItemState)
-            }
-            NavigationIconState.CLOSE -> {
-                toolbar.navigationIcon?.setState(closeNavigationItemState)
-            }
-        }
+        val drawable = newValue.drawable(this)
+        toolbar.navigationIcon = drawable
+        drawable?.start()
     }
 
     /**
@@ -251,8 +246,8 @@ abstract class ReactorActivity(
     }
 
     /**
-     * Handles back presses
-     * All other menu items should be handled in subclass but should call super for back presses
+     * Handles reactor_back presses
+     * All other menu items should be handled in subclass but should call super for reactor_back presses
      */
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         if (item?.itemId == android.R.id.home) {

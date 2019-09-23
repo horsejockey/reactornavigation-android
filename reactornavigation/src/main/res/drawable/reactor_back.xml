@@ -12,7 +12,7 @@
             android:fillType="evenOdd"
             android:pathData="@string/pathmorph_back_path"
             android:strokeWidth="2"
-            android:strokeColor="#000"
+            android:strokeColor="@color/reactorBackButtonColor"
             android:strokeLineCap="square" />
     </group>
 </vector>

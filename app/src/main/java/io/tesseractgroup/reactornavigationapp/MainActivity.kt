@@ -1,5 +1,6 @@
 package io.tesseractgroup.reactornavigationapp
 
+import android.os.Bundle
 import android.util.Log
 import io.tesseractgroup.purestatemachine.StateUpdate
 import io.tesseractgroup.reactor.Core
@@ -39,4 +40,8 @@ class NavigationState : NavigationStateProtocol() {
 class MainActivity : ReactorActivity(R.layout.activity_main, R.id.my_toolbar, R.id.container_reactor) {
 
     override val navigationCore: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand> = App.navigationCore
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
 }
