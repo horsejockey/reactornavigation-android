@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pathmorph_close_path">M 2,2 L 22,22 M 22,22 L 2,2 M 2,22 L 22,2</string>
+    <string name="pathmorph_back_path">M 3, 12 L 24,12 M 1.5, 12 L 12,22 M 1.5, 12 L 12,2</string>
+</resources>

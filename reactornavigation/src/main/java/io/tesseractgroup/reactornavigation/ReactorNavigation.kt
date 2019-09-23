@@ -163,7 +163,7 @@ object ReactorNavigation {
                 if (containerToUpdate is NavContainerState) {
                     containerToUpdate.viewStates = event.views
                     if (updatingCurrentContainer) {
-                        command = NavigationCommand.NavViewPopped
+                        command = NavigationCommand.NavViewReplaced
                     }
                 }
             }

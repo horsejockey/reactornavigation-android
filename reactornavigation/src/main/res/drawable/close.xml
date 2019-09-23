@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:name="pathGroup"
+        android:pivotX="12"
+        android:pivotY="12">
+        <path
+            android:name="closePath"
+            android:fillType="evenOdd"
+            android:pathData="@string/pathmorph_close_path"
+            android:strokeWidth="2"
+            android:strokeColor="#000"
+            android:strokeLineCap="square" />
+    </group>
+</vector>

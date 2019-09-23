@@ -2,7 +2,7 @@ package io.tesseractgroup.reactornavigationapp;
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.support.v7.widget.Toolbar
+import androidx.appcompat.widget.Toolbar
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -44,6 +44,7 @@ class NameView(context: Context, val name: String, override val viewState: NameV
 
         editText_name.setText(viewState.editTextName)
 
+        button_save.text = "Push"
         button_save.setOnClickListener {
             App.navigationCore.fire(NavigationEvent.PushNavView(NameViewState(editText_name.text.toString())))
 //            App.navigationCore.fire(NavigationEvent.PresentModally(NavContainerState("whatever"+viewState.editTextName, listOf(NameViewState(editText_name.text.toString())))))
@@ -63,8 +64,9 @@ class NameView(context: Context, val name: String, override val viewState: NameV
 //            ))
         }
 
+        button_pop.text = "Modal"
         button_pop.setOnClickListener {
-            App.navigationCore.fire(NavigationEvent.PopNavView())
+            App.navigationCore.fire(NavigationEvent.PresentModally(NavContainerState("whatever"+viewState.editTextName, listOf(NameViewState(editText_name.text.toString())))))
         }
 
         button_dismiss.setOnClickListener {

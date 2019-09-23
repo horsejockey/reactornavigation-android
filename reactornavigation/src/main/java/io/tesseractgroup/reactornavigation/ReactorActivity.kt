@@ -2,9 +2,6 @@ package io.tesseractgroup.reactornavigation
 
 import android.content.Context
 import android.os.Bundle
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.Toolbar
 import android.transition.Fade
 import android.transition.Slide
 import android.transition.Transition
@@ -13,20 +10,37 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.InputMethodManager
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import io.tesseractgroup.reactor.Core
-import kotlin.concurrent.fixedRateTimer
 
 /**
  * PrototypeBluetoothLibrary
  * Created by matt on 11/29/17.
  */
 abstract class ReactorActivity(
-    private val layoutId: Int,
-    private val toolbarId: Int,
-    private val reactorContainerId: Int) : AppCompatActivity() {
+        private val layoutId: Int,
+        private val toolbarId: Int,
+        private val reactorContainerId: Int) : AppCompatActivity() {
 
     abstract val navigationCore: Core<NavigationStateProtocol, NavigationEvent, NavigationCommand>
     lateinit var toolbar: Toolbar
+
+    // Navigation Icon State Management
+    enum class NavigationIconState {
+        NONE, CLOSE, BACK;
+    }
+
+    private val closeNavigationItemState = intArrayOf(android.R.attr.state_checked)
+    private val backNavigationItemState = intArrayOf(android.R.attr.state_checked * -1)
+    private var navigationIconSate = NavigationIconState.NONE
+        set(value) {
+            if (field != value) {
+                navigationIconChanged(field, value)
+                field = value
+            }
+        }
 
     private var activityCreated = false
 
@@ -35,12 +49,11 @@ abstract class ReactorActivity(
         super.onCreate(savedInstanceState)
         val existingFragment = displayedFragment()
         val visibleViewState = navigationCore.currentState.findVisibleView()
-        if (existingFragment != null && visibleViewState != null){
+        if (existingFragment != null && visibleViewState != null) {
             existingFragment.reactorView = getViewForState(visibleViewState)
         }
 
         toolbar = findViewById(toolbarId)
-
         setSupportActionBar(toolbar)
         ReactorNavigation.navigationCommandReceived.addMultipleCallbacks(this, ::navigationCommandReceived)
     }
@@ -67,20 +80,20 @@ abstract class ReactorActivity(
     }
 
     private fun navigationCommandReceived(navigationCommand: NavigationCommand) {
-        if (navigationCommand.navStackChanged){
+        if (navigationCommand.navStackChanged) {
             updateWithNavState(navigationCore.currentState, navigationCommand)
-        }else if (navigationCommand is NavigationCommand.PresentAlert){
+        } else if (navigationCommand is NavigationCommand.PresentAlert) {
             runOnUiThread {
                 val alertBuilder = AlertDialog.Builder(this)
                 alertBuilder.setCancelable(false)
                 alertBuilder.setTitle(navigationCommand.title)
                 alertBuilder.setMessage(navigationCommand.message)
-                for ((index, button) in navigationCommand.buttons.iterator().withIndex()){
-                    if (index == 0){
+                for ((index, button) in navigationCommand.buttons.iterator().withIndex()) {
+                    if (index == 0) {
                         alertBuilder.setPositiveButton(button.title, button.action)
-                    }else if (index == 1){
+                    } else if (index == 1) {
                         alertBuilder.setNegativeButton(button.title, button.action)
-                    }else{
+                    } else {
                         alertBuilder.setNeutralButton(button.title, button.action)
                     }
                 }
@@ -106,19 +119,46 @@ abstract class ReactorActivity(
 
             // Get visible View
             if (visibleViewState != null && visibleContainer != null) {
+                if (activityCreated == false) {
+                    Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
+                    return@runOnUiThread
+                }
                 showView(visibleViewState, visibleContainer.tag, visibleContainer.parentTag, command)
 
                 val rootContainer = state.rootViewContainer
                 val rootTag = rootContainer.tag
 
-                val isARootNavContainer = visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)
 
-                if (isARootNavContainer || !visibleContainer.cancellable){
-                    val isEnabled = visibleContainer.viewStates.count() > 1
-                    supportActionBar?.setDisplayHomeAsUpEnabled(isEnabled)
-                }else{
-                    supportActionBar?.setDisplayHomeAsUpEnabled(true)
+                val isARootNavContainer = visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)
+                navigationIconSate = when {
+                    visibleContainer.viewStates.count() == 1 && !isARootNavContainer && visibleContainer.cancellable -> {
+                        NavigationIconState.CLOSE
+                    }
+                    visibleContainer.viewStates.count() > 1 -> {
+                        NavigationIconState.BACK
+                    }
+                    else -> NavigationIconState.NONE
                 }
+            }
+        }
+    }
+
+    // Handle navigation icon changes
+    private fun navigationIconChanged(oldValue: NavigationIconState, newValue: NavigationIconState) {
+        when {
+            oldValue == NavigationIconState.NONE -> {
+                toolbar.setNavigationIcon(R.drawable.closeback)
+            }
+            newValue == NavigationIconState.NONE -> {
+                toolbar.navigationIcon = null
+            }
+        }
+        when(newValue) {
+            NavigationIconState.BACK -> {
+                toolbar.navigationIcon?.setState(backNavigationItemState)
+            }
+            NavigationIconState.CLOSE -> {
+                toolbar.navigationIcon?.setState(closeNavigationItemState)
             }
         }
     }
@@ -129,19 +169,11 @@ abstract class ReactorActivity(
     private var transitioningMainView = false
 
     private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, command: NavigationCommand) {
-        if (activityCreated == false) {
-            Log.e("NAVIGATION", "Dropping navigation event. Activity not created.")
-            return
-        }
         if (transitioningMainView) {
             Log.e("NAVIGATION", "In the middle of a transition. Dropping view transition.")
             return
         }
         val view = displayedFragment()?.reactorView
-//        if (view == null) {
-//            Log.e("NAVIGATION", "(Unknown) In the middle of a transition. Dropping view transition.")
-//            return
-//        }
 
         transitioningMainView = true
         if (view?.viewState != reactorViewState) {
@@ -161,7 +193,7 @@ abstract class ReactorActivity(
             val fragment = ReactorFragment.newInstance(viewToShow)
             val currentFragment = displayedFragment()
 
-            when(command){
+            when (command) {
                 is NavigationCommand.TabIndexChanged -> {
                     fragment.enterTransition = ReactorTransitions.enterFade
                     currentFragment?.exitTransition = ReactorTransitions.exitFade
@@ -233,7 +265,7 @@ abstract class ReactorActivity(
     override fun onBackPressed() {
 
         val reactorView = displayedFragment()?.reactorView
-        if (reactorView?.onBackPressed() == true){
+        if (reactorView?.onBackPressed() == true) {
             return
         }
 
