@@ -162,6 +162,7 @@ abstract class ReactorActivity(
      * Transitions to the provided view state if it is not already displayed
      */
     private var transitioningMainView = false
+    private var lastView: ReactorView? = null
 
     private fun showView(reactorViewState: ReactorViewState, containerTag: ViewContainerTag, parentTag: ViewContainerTag?, command: NavigationCommand) {
         if (transitioningMainView) {
@@ -174,9 +175,11 @@ abstract class ReactorActivity(
         if (view?.viewState != reactorViewState) {
             toolbar.setOnMenuItemClickListener(null)
             toolbar.title = ""
+            var isInitialView = false
             if (view != null) {
                 Log.d("REACTOR_NAVIGATION", "Show in main view: ${reactorViewState} replacing view: ${view.viewState}")
             } else {
+                isInitialView = true
                 Log.d("REACTOR_NAVIGATION", "Replace initial view: ${reactorViewState}")
             }
 
@@ -226,9 +229,14 @@ abstract class ReactorActivity(
             val transaction = supportFragmentManager.beginTransaction()
             transaction.replace(reactorContainerId, fragment)
             transaction.commit()
+            if (lastView != viewToRemove && !isInitialView){
+                Log.e("REACTOR_NAVIGATION", "Last view added doesn't match current view. Consider re-ordering navigation events.")
+                lastView?.viewTearDown()
+            }
             if (viewToRemove is ReactorView) {
                 viewToRemove.viewTearDown()
             }
+            lastView = viewToShow
         }
         transitioningMainView = false
     }

@@ -47,7 +47,7 @@ class NameView(context: Context, val name: String, override val viewState: NameV
         button_save.text = "Push"
         button_save.setOnClickListener {
             App.navigationCore.fire(NavigationEvent.PushNavView(NameViewState(editText_name.text.toString())))
-//            App.navigationCore.fire(NavigationEvent.PresentModally(NavContainerState("whatever"+viewState.editTextName, listOf(NameViewState(editText_name.text.toString())))))
+            App.navigationCore.fire(NavigationEvent.PresentModally(NavContainerState("whatever"+viewState.editTextName, listOf(NameViewState(editText_name.text.toString())))))
 //            App.navigationCore.perform(NavigationCommand.PresentAlert(
 //                "Hello",
 //                "World!",
