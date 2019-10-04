@@ -72,6 +72,10 @@ abstract class ReactorActivity(
         return super.onCreateOptionsMenu(menu)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onPause() {
         super.onPause()
         navigationCore.fire(NavigationEvent.AppContextChanged(false))
