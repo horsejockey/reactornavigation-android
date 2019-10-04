@@ -228,7 +228,7 @@ abstract class ReactorActivity(
             }
             val transaction = supportFragmentManager.beginTransaction()
             transaction.replace(reactorContainerId, fragment)
-            transaction.commit()
+            transaction.commitAllowingStateLoss()
             if (lastView != viewToRemove && !isInitialView){
                 Log.e("REACTOR_NAVIGATION", "Last view added doesn't match current view. Consider re-ordering navigation events.")
                 lastView?.viewTearDown()
