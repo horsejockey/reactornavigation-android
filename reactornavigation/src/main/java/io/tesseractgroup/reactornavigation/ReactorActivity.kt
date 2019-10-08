@@ -137,15 +137,7 @@ abstract class ReactorActivity(
                 }
                 showView(visibleViewState, visibleContainer.tag, visibleContainer.parentTag, command)
 
-                val rootContainer = state.rootViewContainer
-                val rootTag = rootContainer.tag
-                val rootContainerTabContainerTags = if (rootContainer is TabContainerState){
-                    rootContainer.tabContainers.map { it.tag }
-                }else {
-                    listOf()
-                }
-
-                val isARootNavContainer = visibleContainer.tag == rootTag || rootContainerTabContainerTags.contains(visibleContainer.tag)
+                val isARootNavContainer = isARootContainer(visibleContainer, state.rootViewContainer)
                 navigationIconSate = when {
                     visibleContainer.viewStates.count() == 1 && !isARootNavContainer && visibleContainer.cancellable -> {
                         NavigationIconState.CLOSE
@@ -284,15 +276,28 @@ abstract class ReactorActivity(
         val selectedContainer = state.rootViewContainer.findVisibleContainer()
         val parentContainerTag = selectedContainer?.parentTag
 
-        val isRootContainer = parentContainerTag == null || (state.rootViewContainer.tag == parentContainerTag && state.rootViewContainer is TabContainerState)
+        if (selectedContainer == null){
+            finish()
+            return
+        }
 
-        if (selectedContainer != null && selectedContainer.viewStates.count() > 1) {
+        val isRootContainer = isARootContainer(selectedContainer, state.rootViewContainer)
+        if (selectedContainer.viewStates.count() > 1) {
             navigationCore.fire(NavigationEvent.PopNavView(selectedContainer.tag))
-        } else if (!isRootContainer && selectedContainer?.cancellable == true) {
+        } else if (!isRootContainer && selectedContainer.cancellable == true) {
             navigationCore.fire(NavigationEvent.DismissModal(parentContainerTag!!))
         } else {
             finish()
         }
+    }
+
+    private fun isARootContainer(container: ViewContainerState, rootContainer: ViewContainerState): Boolean {
+        val rootContainerTabContainerTags = if (rootContainer is TabContainerState){
+            rootContainer.tabContainers.map { it.tag }
+        }else {
+            listOf()
+        }
+        return container.parentTag == null || rootContainerTabContainerTags.contains(container.tag)
     }
 }
 
