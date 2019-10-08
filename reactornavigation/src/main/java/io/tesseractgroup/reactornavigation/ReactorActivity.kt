@@ -139,9 +139,13 @@ abstract class ReactorActivity(
 
                 val rootContainer = state.rootViewContainer
                 val rootTag = rootContainer.tag
+                val rootContainerTabContainerTags = if (rootContainer is TabContainerState){
+                    rootContainer.tabContainers.map { it.tag }
+                }else {
+                    listOf()
+                }
 
-
-                val isARootNavContainer = visibleContainer.tag == rootTag || (rootContainer is TabContainerState && visibleContainer.parentTag == rootTag)
+                val isARootNavContainer = visibleContainer.tag == rootTag || rootContainerTabContainerTags.contains(visibleContainer.tag)
                 navigationIconSate = when {
                     visibleContainer.viewStates.count() == 1 && !isARootNavContainer && visibleContainer.cancellable -> {
                         NavigationIconState.CLOSE

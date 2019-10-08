@@ -1,7 +1,8 @@
-package ${packageName};
+package ${packageName}
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.support.v7.widget.Toolbar
+import androidx.appcompat.widget.Toolbar
 import io.tesseractgroup.reactornavigation.ReactorView
 import io.tesseractgroup.reactornavigation.ReactorViewState
 
