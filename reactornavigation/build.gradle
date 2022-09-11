@@ -1,20 +1,26 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'org.jetbrains.dokka-android'
-
-task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaAndroidTask) {
-    outputFormat = 'javadoc'
-    outputDirectory = "$buildDir/javadoc"
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+    id 'maven-publish'
 }
 
+group = PROJ_GROUP
+version = PROJ_VERSION
+project.archivesBaseName = PROJ_ARTIFACTID
+
 android {
-    compileSdkVersion 29
+    compileSdkVersion 32
+
+    namespace = "io.tesseractgroup.reactor.reactornavigation"
 
     defaultConfig {
+        aarMetadata {
+            minCompileSdk = 21
+        }
         minSdkVersion 21
-        targetSdkVersion 29
-        versionCode 10
-        versionName "2.5.6"
+        targetSdkVersion 31
+        versionCode 11
+        versionName "2.6.0"
         vectorDrawables.useSupportLibrary = true
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -33,15 +39,26 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.5.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    api 'io.tesseractgroup.reactor:reactor:2.3.1'
+    api 'com.github.horsejockey:reactor-android:2.4.0'
 
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.4.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
-apply from: rootProject.file('bintray.gradle')
-apply plugin: 'kotlin-android-extensions'
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.release
+                groupId = PROJ_GROUP
+                artifactId = PROJ_ARTIFACTID
+                version = PROJ_VERSION
+            }
+        }
+    }
+}
