@@ -17,6 +17,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import io.tesseractgroup.reactor.Core
+import io.tesseractgroup.reactor.reactornavigation.R
 import kotlinx.coroutines.newSingleThreadContext
 
 /**
@@ -66,7 +67,7 @@ abstract class ReactorActivity(
         ReactorNavigation.navigationCommandReceived.addMultipleCallbacks(this, ::navigationCommandReceived)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
         activityCreated = true
         updateWithNavState(navigationCore.currentState, NavigationCommand.RootContainerChanged(null))
         return super.onCreateOptionsMenu(menu)
